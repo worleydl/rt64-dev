@@ -39,6 +39,8 @@ extern "C" {
 }
 #endif
 
+extern "C" __declspec(dllimport) void* uwp_GetWindowReference();
+
 namespace RT64 {
     static const uint32_t ShaderDescriptorHeapSize = 65536;
     static const uint32_t SamplerDescriptorHeapSize = 1024;
@@ -1226,17 +1228,24 @@ namespace RT64 {
 
         IDXGISwapChain1 *swapChain1;
         IDXGIFactory4 *dxgiFactory = commandQueue->device->renderInterface->dxgiFactory;
+#if 0
         HRESULT res = dxgiFactory->CreateSwapChainForHwnd(commandQueue->d3d, renderWindow, &swapChainDesc, nullptr, nullptr, &swapChain1);
+#else
+        HRESULT res = dxgiFactory->CreateSwapChainForCoreWindow(commandQueue->d3d, static_cast<IUnknown*>(uwp_GetWindowReference()), &swapChainDesc, nullptr, &swapChain1);
+#endif
         if (FAILED(res)) {
             fprintf(stderr, "CreateSwapChainForHwnd failed with error code 0x%lX.\n", res);
             return;
         }
 
+ // DLW: Doesn't work on UWP
+#if 0
         res = dxgiFactory->MakeWindowAssociation(renderWindow, DXGI_MWA_NO_ALT_ENTER);
         if (FAILED(res)) {
             fprintf(stderr, "MakeWindowAssociation failed with error code 0x%lX.\n", res);
             return;
         }
+#endif
 
         d3d = static_cast<IDXGISwapChain3 *>(swapChain1);
         d3d->SetMaximumFrameLatency(1);
@@ -1330,10 +1339,15 @@ namespace RT64 {
     }
 
     void D3D12SwapChain::getWindowSize(uint32_t &dstWidth, uint32_t &dstHeight) const {
+#if 0
         RECT rect;
         GetClientRect(renderWindow, &rect);
         dstWidth = rect.right - rect.left;
         dstHeight = rect.bottom - rect.top;
+#else
+        dstWidth = 3840;
+        dstHeight = 2160;
+#endif
     }
 
     void D3D12SwapChain::setTextures() {

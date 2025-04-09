@@ -442,6 +442,9 @@ target_link_libraries(rt64 nfd)
 target_link_libraries(rt64 libzstd_static)
 target_link_libraries(rt64 plume)
 
+# Add libuwp
+target_link_libraries(rt64 "${PROJECT_SOURCE_DIR}/src/contrib/libuwp/libuwp.lib")
+
 # Add tools.
 add_subdirectory(src/tools/texture_hasher)
 add_subdirectory(src/tools/texture_packer)

@@ -486,9 +486,13 @@ namespace RT64 {
         // Spawn the threads that will compile all the pipelines.
         pipelineThreads.clear();
         pipelineThreads.resize(pipelineThreadCreations.size());
+// DLW: Uber pipeline doesn't really work on UWP at the moment
+//      When enabling DYNAMIC_RENDER_PARAMS, pipeline setup takes 45m on UWP
+#if 0
         for (uint32_t i = 0; i < uint32_t(pipelineThreads.size()); i++) {
             pipelineThreads[i] = std::make_unique<std::thread>(&RasterShaderUber::threadCreatePipelines, this, i);
         }
+#endif
 
         // Create the pipelines for post blend operations.
         std::unique_ptr<RenderShader> postBlendAddPixelShader;
@@ -586,9 +590,12 @@ namespace RT64 {
 
     void RasterShaderUber::waitForPipelineCreation() {
         if (!pipelinesCreated) {
+// DLW: Uber pipeline disabled on UWP
+#if 0
             for (std::unique_ptr<std::thread> &thread : pipelineThreads) {
                 thread->join();
             }
+#endif
 
             pipelineThreads.clear();
             pipelineThreadCreations.clear();

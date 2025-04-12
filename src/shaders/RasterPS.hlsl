@@ -49,9 +49,11 @@ LIBRARY_EXPORT bool RasterPS(const RenderParams rp, float4 vertexPosition, float
     bool isFrontFace, out float4 resultColor, out float4 resultAlpha) 
 {
     const OtherMode otherMode = { rp.omL, rp.omH };
+    bool writeResult = true;
+
 #if defined(DYNAMIC_RENDER_PARAMS)
     if ((otherMode.cycleType() != G_CYC_COPY) && renderFlagCulling(rp.flags) && isFrontFace) {
-        return false;
+        writeResult = false;
     }
 #endif
     
@@ -68,14 +70,14 @@ LIBRARY_EXPORT bool RasterPS(const RenderParams rp, float4 vertexPosition, float
     if (depthClampNear) {
         // Since depth clip is disabled on the PSO so near clip can be ignored, we manually clip any values above the allowed depth.
         if (vertexPosition.z > 1.0f) {
-            return false;
+            writeResult = false;
         }
     }
 #ifdef DYNAMIC_RENDER_PARAMS
     // We emulate depth clip on the dynamic version of the shader.
     else {
         if ((vertexPosition.z < 0.0f) || (vertexPosition.z > 1.0f)) {
-            return false;
+            writeResult = false;
         }
     }
 #endif
@@ -99,7 +101,7 @@ LIBRARY_EXPORT bool RasterPS(const RenderParams rp, float4 vertexPosition, float
         const float DepthTolerance = max(CoplanarDepthTolerance(surfaceDepth), dz);
         const float pixelDepth = select(depthClampNear, max(vertexPosition.z, 0.0f), vertexPosition.z);
         if (abs(pixelDepth - surfaceDepth) > DepthTolerance) {
-            return false;
+            writeResult = false;
         }
     }
     
@@ -195,12 +197,12 @@ LIBRARY_EXPORT bool RasterPS(const RenderParams rp, float4 vertexPosition, float
     // Alpha compare.
     if (otherMode.alphaCompare() == G_AC_DITHER) {
         if (alphaCompareValue < nextRand(randomSeed)) {
-            return false;
+            writeResult = false;
         }
     }
     else if (otherMode.alphaCompare() == G_AC_THRESHOLD) {
         if (alphaCompareValue < instanceRDPParams[instanceIndex].blendColor.a) {
-            return false;
+            writeResult = false;
         }
     }
     
@@ -212,7 +214,7 @@ LIBRARY_EXPORT bool RasterPS(const RenderParams rp, float4 vertexPosition, float
     // Discard all pixels without coverage.
     const float CoverageThreshold = 1.0f / cvgRange;
     if (resultCvg < CoverageThreshold) {
-        return false;
+        writeResult = false;
     }
     
     // Add the blender if it can be replicated with simple emulation.
@@ -259,7 +261,7 @@ LIBRARY_EXPORT bool RasterPS(const RenderParams rp, float4 vertexPosition, float
     }
 #endif
     
-    return true;
+    return writeResult;
 }
 
 #if defined(DYNAMIC_RENDER_PARAMS)

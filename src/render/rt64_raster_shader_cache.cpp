@@ -162,14 +162,10 @@ namespace RT64 {
     RasterShader *RasterShaderCache::getGPUShader(const ShaderDescription &desc) {
         const uint64_t shaderHash = desc.hash();
 
-        retry:
-        std::unique_lock<std::mutex> lock(GPUShadersMutex);
+        const std::unique_lock<std::mutex> lock(GPUShadersMutex);
         auto shaderIt = GPUShaders.find(shaderHash);
         if (shaderIt == GPUShaders.end()) {
-            // DLW: Churnin and burnin until we get a shader on UWP
-            lock.unlock();
-            goto retry;
-            //return nullptr;
+            return nullptr;
         }
 
         return shaderIt->second.get();

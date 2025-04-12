@@ -20,8 +20,10 @@
 // easier time to eliminate dead code, as its graph model can't handle the loop constructs yet.
 #ifdef DYNAMIC_RENDER_PARAMS
 #define USE_FOR_LOOPS 1
+#define ROLLUP [loop]
 #else
 #define USE_FOR_LOOPS 0
+#define ROLLUP [unroll]
 #endif
 
 void computeLOD(OtherMode otherMode, uint rdpTileCount, float2 primLOD, float resLodScale, float ddxuvx, float ddyuvy, inout int tileIndex0, inout int tileIndex1, out float lodFraction) {
@@ -152,7 +154,7 @@ float4 sampleTextureLevel(const RDPTile rdpTile, const GPUTile gpuTile, bool fil
     if ((nativeSampler == NATIVE_SAMPLER_NONE) || gpuTileUsesTMEM) {
 #if USE_FOR_LOOPS
         int numSamples = select_uint(filtering, 4, 1);
-        [unroll]
+        ROLLUP
         for (int i = 0; i < numSamples; i++) {
             samples[i] = clampWrapMirrorSample(rdpTile, gpuTile, tcScale, texelBaseInt + int2(i >> 1, i & 1), tlut, gpuTileUsesTMEM, mipLevel);
         }
@@ -170,7 +172,7 @@ float4 sampleTextureLevel(const RDPTile rdpTile, const GPUTile gpuTile, bool fil
         Texture2D texture = gTextures[NonUniformResourceIndex(gpuTile.textureIndex)];
 #if USE_FOR_LOOPS
         int numSamples = select_uint(filtering, 4, 1);
-        [unroll]
+        ROLLUP
         for (int i = 0; i < numSamples; i++) {
             samples[i] = sampleTextureNative(texture, nativeSampler, texelBaseInt + int2(i >> 1, i & 1), gpuTile.textureDimensions.xy);
         }
@@ -323,7 +325,7 @@ float4 sampleTexture(OtherMode otherMode, RenderFlags renderFlags, float2 inputU
 
     // Perform the RDP sampling.
 #if USE_FOR_LOOPS
-    [unroll]
+    ROLLUP
     for (uint i = 0; i < numRDPSamples; i++) {
         textureSamples[i] = sampleTextureLevel(rdpTile, gpuTile, filterBilerp, filterAverage, linearFiltering, uvCoord, tlut, canDecodeTMEM, RDPMipLevels[i], usesHDR);
     }

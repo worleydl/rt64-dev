@@ -361,7 +361,9 @@ set (SOURCES
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_workload.cpp"
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_workload_queue.cpp"
 
-    "${PROJECT_SOURCE_DIR}/src/imgui/imgui_impl_sdl2_custom.cpp"
+    #"${PROJECT_SOURCE_DIR}/src/imgui/imgui_impl_sdl2_custom.cpp"
+    "${PROJECT_SOURCE_DIR}/src/contrib/imgui/backends/imgui_impl_sdl2.cpp" # DLW: Need this on xbox to get gamepad support in debug menu
+
 
     "${PROJECT_SOURCE_DIR}/src/render/rt64_buffer_uploader.cpp"
     "${PROJECT_SOURCE_DIR}/src/render/rt64_framebuffer_renderer.cpp"

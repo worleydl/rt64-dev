@@ -555,6 +555,17 @@ namespace RT64 {
             }
         }
 
+        if (event->type == SDL_CONTROLLERBUTTONDOWN) {
+            switch (event->cbutton.button) {
+            case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+                processDeveloperShortcut(DeveloperShortcut::Inspector);
+                return true;
+            default:
+                // No-op for now
+                break;
+            };
+        }
+
         return false;
     }
 

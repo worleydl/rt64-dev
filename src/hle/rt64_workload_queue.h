@@ -81,7 +81,7 @@ namespace RT64 {
         std::mutex threadMutex;
         std::atomic<bool> threadsRunning = false;
         std::atomic<bool> rtEnabled = false;
-        std::atomic<bool> ubershadersOnly = false;
+        std::atomic<bool> ubershadersOnly = true;
         std::atomic<bool> ubershadersVisible = false;
         std::unique_ptr<FramebufferRenderer> framebufferRenderer;
         std::unique_ptr<RenderFramebufferManager> renderFramebufferManager;

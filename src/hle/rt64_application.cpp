@@ -15,6 +15,9 @@
 #   include "res/bluenoise/LDR_64_64_64_RGB1.h"
 #endif
 
+#include "hle/rt64_uwp_mods.h"
+bool showing_inspector = false;
+
 //#define LOG_DISPLAY_LISTS
 
 namespace plume {
@@ -585,9 +588,11 @@ namespace RT64 {
                     }
 
                     freeCamClearQueued = true;
+		    showing_inspector = true;
                 }
                 else if (presentQueue->inspector != nullptr) {
                     presentQueue->inspector.reset(nullptr);
+		    showing_inspector = false;
                 }
             }
             else {

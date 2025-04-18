@@ -1563,7 +1563,7 @@ namespace RT64 {
                                 bool vertexShaderButton = ImGui::Button("Dump Vertex Shader");
                                 if (pixelShaderButton || vertexShaderButton) {
                                     RasterShaderText shaderText = RasterShader::generateShaderText(call.shaderDesc, true);
-                                    std::filesystem::path shaderFilename = FileDialog::getSaveFilename({ FileFilter("HLSL", "hlsl") });
+                                    std::filesystem::path shaderFilename = "E:\\rt64\\shader_debug.hlsl";; //FileDialog::getSaveFilename({ FileFilter("HLSL", "hlsl") });
                                     if (!shaderFilename.empty()) {
                                         std::ofstream o(shaderFilename);
                                         if (o.is_open()) {

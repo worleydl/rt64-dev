@@ -16,6 +16,7 @@
 #   include "res/bluenoise/LDR_64_64_64_RGB1.h"
 #endif
 
+#define UWP_SHADERS 1
 #include "hle/rt64_uwp_mods.h"
 bool showing_inspector = false;
 
@@ -357,6 +358,11 @@ namespace RT64 {
         const uint32_t ubershaderThreads = uint32_t(std::max(int(threadsAvailable) - 2, 1));
         rasterShaderCache = std::make_unique<RasterShaderCache>(rasterShaderThreads, ubershaderThreads);
         rasterShaderCache->setup(device.get(), renderInterface->getCapabilities().shaderFormat, shaderLibrary.get(), multisampling);
+
+        // DLW: Submit problematic UWP shaders on launch
+        rasterShaderCache->submit(desc_multitexture);
+        rasterShaderCache->submit(desc_mountain);
+        rasterShaderCache->submit(desc_ice);
 
 #   if RT_ENABLED
         if (device->getCapabilities().raytracing) {

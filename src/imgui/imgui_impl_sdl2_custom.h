@@ -18,9 +18,6 @@
 // - Documentation        https://dearimgui.com/docs (same as your local docs/ folder).
 // - Introduction, links and more at the top of imgui.cpp
 
-// RT64
-// This custom version of the backend has controller support completely removed to avoid errors with DualShock/DualSense controllers.
-
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
 #ifndef IMGUI_DISABLE
@@ -39,5 +36,10 @@ IMGUI_IMPL_API bool     ImGui_ImplSDL2_InitForOther(SDL_Window* window);
 IMGUI_IMPL_API void     ImGui_ImplSDL2_Shutdown();
 IMGUI_IMPL_API void     ImGui_ImplSDL2_NewFrame();
 IMGUI_IMPL_API bool     ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event);
+
+// Gamepad selection automatically starts in AutoFirst mode, picking first available SDL_Gamepad. You may override this.
+// When using manual mode, caller is responsible for opening/closing gamepad.
+enum ImGui_ImplSDL2_GamepadMode { ImGui_ImplSDL2_GamepadMode_AutoFirst, ImGui_ImplSDL2_GamepadMode_AutoAll, ImGui_ImplSDL2_GamepadMode_Manual };
+IMGUI_IMPL_API void     ImGui_ImplSDL2_SetGamepadMode(ImGui_ImplSDL2_GamepadMode mode, struct _SDL_GameController** manual_gamepads_array = NULL, int manual_gamepads_count = -1);
 
 #endif // #ifndef IMGUI_DISABLE

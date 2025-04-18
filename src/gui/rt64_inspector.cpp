@@ -176,6 +176,8 @@ namespace RT64 {
 
     void Inspector::setIniPath(const std::filesystem::path &path) {
         ImGuiIO &io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // DLW: Where to put this? (using pad for xbox render debug) 
+        io.FontGlobalScale = 3.0f; // DLW: Beefing up scale so my old man eyes can see
         IniFilenameUTF8 = path.u8string();
         io.IniFilename = IniFilenameUTF8.c_str();
     }
@@ -265,6 +267,10 @@ namespace RT64 {
             }
             else if ((event->type == SDL_MOUSEMOTION) || (event->type == SDL_MOUSEBUTTONDOWN) || (event->type == SDL_MOUSEBUTTONUP) || (event->type == SDL_MOUSEWHEEL)) {
                 return ImGui::GetIO().WantCaptureMouse;
+            }
+            // Capture all controller when menu is shown
+            else if (event->type == SDL_CONTROLLERBUTTONDOWN || event->type == SDL_CONTROLLERBUTTONUP || event->type == SDL_CONTROLLERAXISMOTION) {
+                return true;
             }
         }
         

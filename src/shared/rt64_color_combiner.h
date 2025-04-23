@@ -564,56 +564,82 @@ namespace interop {
             i = clamp(i, 0.0f, 1.0f);
         }
 
-        float runCycle(Inputs inputs, bool twoCycle, inout float4 combinerColor) {
-            const uint cycles = twoCycle ? 2 : 1;
+
+#ifdef DYNAMIC_RENDER_PARAMS
+#define XBOX_VOLATILE volatile
+#else
+#define XBOX_VOLATILE
+#endif
+
+        float runCycles(Inputs inputs, uint cycles, inout float4 combinerColor) {
             float alphaOut = 0.0f;
-            for (int i = 0; i < cycles; i++) {
-                const bool secondCycleInputs = (i == 1);
-                const ColorInput CA = decodeColorInput(0, secondCycleInputs);
-                const ColorInput CB = decodeColorInput(1, secondCycleInputs);
-                const ColorInput CC = decodeColorInput(2, secondCycleInputs);
-                const ColorInput CD = decodeColorInput(3, secondCycleInputs);
-                const AlphaInput AA = decodeAlphaInput(0, secondCycleInputs);
-                const AlphaInput AB = decodeAlphaInput(1, secondCycleInputs);
-                const AlphaInput AC = decodeAlphaInput(2, secondCycleInputs);
-                const AlphaInput AD = decodeAlphaInput(3, secondCycleInputs);
-                const bool secondCycle = twoCycle && secondCycleInputs;
+            float4 first = float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-                // Simulate the wrap on the inputs of the second cycle.
-                if (secondCycle) {
-                    if (AC == A_COMBINED) {
-                        wrapInputC(combinerColor.a);
-                    }
-                    else {
-                        wrapInputABD(combinerColor.a);
-                    }
-                }
+            XBOX_VOLATILE const bool secondCycleInputs = (cycles == 1);
 
-                if (!inputs.alphaOnly) {
-                    if (secondCycle) {
-                        if (CC == C_COMBINED) {
-                            wrapInputC(combinerColor.r);
-                            wrapInputC(combinerColor.g);
-                            wrapInputC(combinerColor.b);
-                        }
-                        else {
-                            wrapInputABD(combinerColor.r);
-                            wrapInputABD(combinerColor.g);
-                            wrapInputABD(combinerColor.b);
-                        }
-                    }
+            const ColorInput CA = decodeColorInput(0, secondCycleInputs);
+            const ColorInput CB = decodeColorInput(1, secondCycleInputs);
+            const ColorInput CC = decodeColorInput(2, secondCycleInputs);
+            const ColorInput CD = decodeColorInput(3, secondCycleInputs);
+            const AlphaInput AA = decodeAlphaInput(0, secondCycleInputs);
+            const AlphaInput AB = decodeAlphaInput(1, secondCycleInputs);
+            const AlphaInput AC = decodeAlphaInput(2, secondCycleInputs);
+            const AlphaInput AD = decodeAlphaInput(3, secondCycleInputs);
 
-                    combinerColor.rgb = (fromColorInput(inputs, secondCycle, CA, combinerColor) - fromColorInput(inputs, secondCycle, CB, combinerColor)) *
-                        fromColorInput(inputs, secondCycle, CC, combinerColor) + fromColorInput(inputs, secondCycle, CD, combinerColor);
-                }
-
-                combinerColor.a = (fromAlphaInput(inputs, secondCycle, AA, combinerColor.a) - fromAlphaInput(inputs, secondCycle, AB, combinerColor.a)) *
-                    fromAlphaInput(inputs, secondCycle, AC, combinerColor.a) + fromAlphaInput(inputs, secondCycle, AD, combinerColor.a);
-
-                if (i == 0) {
-                    alphaOut = combinerColor.a;
-                }
+            float4 second;
+            if (!inputs.alphaOnly) {
+                second.rgb = (fromColorInput(inputs, false, CA, first) - fromColorInput(inputs, false, CB, first)) *
+                    fromColorInput(inputs, false, CC, first) + fromColorInput(inputs, false, CD, first);
             }
+
+            second.a = (fromAlphaInput(inputs, false, AA, first.a) - fromAlphaInput(inputs, false, AB, first.a)) *
+                fromAlphaInput(inputs, false, AC, first.a) + fromAlphaInput(inputs, false, AD, first.a);
+
+            alphaOut = second.a;
+
+            if (cycles == 1) { // DLW: Not sure why secondCycleInputs doesn't play nice here...
+                combinerColor = second;
+                return alphaOut;
+            }
+
+            // === SECOND CYCLE ===
+
+            const ColorInput CA2 = decodeColorInput(0, true);
+            const ColorInput CB2 = decodeColorInput(1, true);
+            const ColorInput CC2 = decodeColorInput(2, true);
+            const ColorInput CD2 = decodeColorInput(3, true);
+            const AlphaInput AA2 = decodeAlphaInput(0, true);
+            const AlphaInput AB2 = decodeAlphaInput(1, true);
+            const AlphaInput AC2 = decodeAlphaInput(2, true);
+            const AlphaInput AD2 = decodeAlphaInput(3, true);
+
+
+            // Simulate the wrap on the inputs of the second cycle.
+			if (AC2 == A_COMBINED) {
+				wrapInputC(second.a);
+			}
+			else {
+				wrapInputABD(second.a);
+			}
+
+            if (!inputs.alphaOnly) {
+				if (CC2 == C_COMBINED) {
+					wrapInputC(second.r);
+					wrapInputC(second.g);
+					wrapInputC(second.b);
+				}
+				else {
+					wrapInputABD(second.r);
+					wrapInputABD(second.g);
+					wrapInputABD(second.b);
+				}
+
+                combinerColor.rgb = (fromColorInput(inputs, true, CA2, second) - fromColorInput(inputs, true, CB2, second)) *
+                    fromColorInput(inputs, true, CC2, second) + fromColorInput(inputs, true, CD2, second);
+            }
+
+            combinerColor.a = (fromAlphaInput(inputs, true, AA2, second.a) - fromAlphaInput(inputs, true, AB2, second.a)) *
+                fromAlphaInput(inputs, true, AC2, second.a) + fromAlphaInput(inputs, true, AD2, second.a);
 
             return alphaOut;
         }
@@ -628,22 +654,8 @@ namespace interop {
                 alphaCompareValue = combinerColor.a;
             }
             else {
-                float alphaOut;
-                alphaCompareValue = runCycle(inputs, twoCycle, combinerColor);
+                alphaCompareValue = runCycles(inputs, twoCycle ? 2 : 1, combinerColor);
             }
-
-            /*
-                DLW: Xbox DX12 driver has a bug and the existing setup blew up in the ubershader
-                only.  The restructuring of runCycle should be functionally identical but just
-                rearranging the code makes it work in uber and normal shaders.
-            */
-            //alphaCompareValue = combinerColor.a;
-
-            /*
-            if (cycleType == G_CYC_2CYCLE) {
-                runCycle(inputs, 1, twoCycle, combinerColor);
-            }
-            */
 
             wrapClamp(combinerColor.r);
             wrapClamp(combinerColor.g);

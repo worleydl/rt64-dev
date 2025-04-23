@@ -32,6 +32,23 @@ namespace RT64 {
 		interop::RenderFlags{.value = 1217265674U }
 	};
 
+	/* Ice chandelier */
+	/*
+	RenderParams rp; rp.omL = 3356510680U;
+	rp.omH = 1584128U;
+	rp.ccL = 4229398112U;
+	rp.ccH = 905869176U;
+	rp.flags = 1217003534;
+	*/
+
+	/*Working wall*/
+	/*
+	RenderParams rp; rp.omL = 3356565624U;
+	rp.omH = 1584128U;
+	rp.ccL = 4229999620U;
+	rp.ccH = 4279211007U;
+	rp.flags = 1284497422;;
+	*/
 }
 #endif
 

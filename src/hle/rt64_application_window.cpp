@@ -23,6 +23,8 @@
 
 #include "common/rt64_common.h"
 
+extern "C" __declspec(dllimport) float uwp_GetRefreshRate();
+
 namespace RT64 {
     // ApplicationWindow
 
@@ -243,6 +245,8 @@ namespace RT64 {
 
     void ApplicationWindow::detectRefreshRate() {
 #   if defined(_WIN32)
+// DLW: Snag refresh rate from libuwp
+#if 0
         HMONITOR monitor = MonitorFromWindow(windowHandle, MONITOR_DEFAULTTONEAREST);
         MONITORINFOEX info = {};
         info.cbSize = sizeof(info);
@@ -259,6 +263,9 @@ namespace RT64 {
         }
 
         refreshRate = displayMode.dmDisplayFrequency;
+#else
+        refreshRate = (uint32_t) uwp_GetRefreshRate();
+#endif
 
         // FIXME: This function truncates refresh rates that'd otherwise round to the correct rate in most cases.
         // This hack will fix most common cases where refresh rates divisble by 10 are truncated to the wrong value.

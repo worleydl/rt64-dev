@@ -615,24 +615,24 @@ namespace interop {
 
 
             // Simulate the wrap on the inputs of the second cycle.
-			if (AC2 == A_COMBINED) {
-				wrapInputC(second.a);
-			}
-			else {
-				wrapInputABD(second.a);
-			}
+            if (AC2 == A_COMBINED) {
+                wrapInputC(second.a);
+            }
+            else {
+                wrapInputABD(second.a);
+            }
 
             if (!inputs.alphaOnly) {
-				if (CC2 == C_COMBINED) {
-					wrapInputC(second.r);
-					wrapInputC(second.g);
-					wrapInputC(second.b);
-				}
-				else {
-					wrapInputABD(second.r);
-					wrapInputABD(second.g);
-					wrapInputABD(second.b);
-				}
+                if (CC2 == C_COMBINED) {
+                    wrapInputC(second.r);
+                    wrapInputC(second.g);
+                    wrapInputC(second.b);
+                }
+                else {
+                    wrapInputABD(second.r);
+                    wrapInputABD(second.g);
+                    wrapInputABD(second.b);
+                }
 
                 combinerColor.rgb = (fromColorInput(inputs, true, CA2, second) - fromColorInput(inputs, true, CB2, second)) *
                     fromColorInput(inputs, true, CC2, second) + fromColorInput(inputs, true, CD2, second);

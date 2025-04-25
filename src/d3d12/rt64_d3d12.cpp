@@ -39,6 +39,7 @@ extern "C" {
 }
 #endif
 
+extern "C" __declspec(dllimport) void  uwp_GetScreenSize(int* x, int* y);
 extern "C" __declspec(dllimport) void* uwp_GetWindowReference();
 
 namespace RT64 {
@@ -1345,8 +1346,10 @@ namespace RT64 {
         dstWidth = rect.right - rect.left;
         dstHeight = rect.bottom - rect.top;
 #else
-        dstWidth = 3840;
-        dstHeight = 2160;
+        int x,y;
+        uwp_GetScreenSize(&x, &y);
+        dstWidth = x;
+        dstHeight = y;
 #endif
     }
 

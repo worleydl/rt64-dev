@@ -65,6 +65,22 @@ namespace RT64 {
                 {
                     const std::unique_lock<std::mutex> lock(shaderCache->GPUShadersMutex);
                     shaderCache->GPUShaders[shaderDesc.hash()] = std::move(newShader);
+
+                    {
+                        // Update shader history, evict if needed
+                        std::unique_lock<std::mutex> queueLock(shaderCache->submissionMutex);
+
+                        shaderCache->shaderHistory.emplace_front(shaderDesc.hash());
+                        shaderCache->historyMap[shaderDesc.hash()] = shaderCache->shaderHistory.begin();
+
+                        if (shaderCache->shaderHistory.size() >= shaderCache->maxCacheSize) {
+                            uint64_t to_evict = shaderCache->shaderHistory.back();
+                            shaderCache->GPUShaders.erase(to_evict);
+                            shaderCache->historyMap.erase(to_evict);
+                            shaderCache->shaderHashes.erase(to_evict);
+                            shaderCache->shaderHistory.pop_back();
+						}
+                    }
                 }
             }
         }
@@ -119,6 +135,9 @@ namespace RT64 {
             const uint64_t shaderHash = desc.hash();
             bool &found = shaderHashes[shaderHash];
             if (found) {
+                // Bump LRU, there is slight delay so make sure it's in history
+                if (historyMap.find(shaderHash) != historyMap.end())
+                    shaderHistory.splice(shaderHistory.begin(), shaderHistory, historyMap[shaderHash]);
                 return;
             }
 
@@ -156,6 +175,8 @@ namespace RT64 {
         {
             std::unique_lock<std::mutex> queueLock(submissionMutex);
             shaderHashes.clear();
+            historyMap.clear();
+            shaderHistory.clear();
         }
     }
 

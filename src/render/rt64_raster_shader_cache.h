@@ -8,6 +8,7 @@
 #include <condition_variable>
 #include <filesystem>
 #include <fstream>
+#include <list>
 #include <mutex>
 #include <queue>
 #include <thread>
@@ -35,9 +36,12 @@ namespace RT64 {
         std::mutex descQueueMutex;
         int32_t descQueueActiveCount = 0;
         std::condition_variable descQueueChanged;
+        std::unordered_map<uint64_t, std::list<uint64_t>::iterator> historyMap;
         std::unordered_map<uint64_t, bool> shaderHashes;
         std::unordered_map<uint64_t, std::unique_ptr<RasterShader>> GPUShaders;
         std::mutex GPUShadersMutex;
+        std::list<uint64_t> shaderHistory;
+        const uint32_t maxCacheSize = 512;
         std::list<std::unique_ptr<CompilationThread>> compilationThreads;
         uint32_t threadCount;
         uint32_t ubershaderThreadCount;

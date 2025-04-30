@@ -637,7 +637,6 @@ namespace RT64 {
             switch (event->cbutton.button) {
             case SDL_CONTROLLER_BUTTON_LEFTSTICK:
                 processDeveloperShortcut(DeveloperShortcut::Inspector);
-                return true;
             default:
                 // No-op for now
                 break;

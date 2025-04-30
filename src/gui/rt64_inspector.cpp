@@ -268,10 +268,6 @@ namespace RT64 {
             else if ((event->type == SDL_MOUSEMOTION) || (event->type == SDL_MOUSEBUTTONDOWN) || (event->type == SDL_MOUSEBUTTONUP) || (event->type == SDL_MOUSEWHEEL)) {
                 return ImGui::GetIO().WantCaptureMouse;
             }
-            // Capture all controller when menu is shown
-            else if (event->type == SDL_CONTROLLERBUTTONDOWN || event->type == SDL_CONTROLLERBUTTONUP || event->type == SDL_CONTROLLERAXISMOTION) {
-                return true;
-            }
         }
         
         return false;

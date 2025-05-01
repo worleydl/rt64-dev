@@ -30,6 +30,7 @@ namespace RT64 {
         ~MappedFile();
         bool open(const std::filesystem::path &path);
         bool isOpen() const;
+        HANDLE handle() const;
         uint8_t *data() const;
         size_t size() const;
     };

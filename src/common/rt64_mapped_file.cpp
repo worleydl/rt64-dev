@@ -61,6 +61,9 @@ namespace RT64 {
             return false;
         }
 
+// DLW: UWP has faux virtual memory so large texture packs won't work with this setup
+//      Switch to ReadFile with thread-local overlapped offsets, DO NOT modify the global pointer
+#if 0
         fileMappingHandle = CreateFileMappingW(fileHandle, nullptr, PAGE_READONLY, 0, 0, nullptr);
         if (fileMappingHandle == nullptr) {
             fprintf(stderr, "CreateFileMappingW failed with error %lu.\n", GetLastError());
@@ -78,6 +81,7 @@ namespace RT64 {
             fileHandle = nullptr;
             return false;
         }
+#endif
 
         return true;
 #   else
@@ -109,10 +113,18 @@ namespace RT64 {
 
     bool MappedFile::isOpen() const {
 #   if defined(_WIN32)
+#if 0
         return (fileView != nullptr);
+#else
+        return (fileHandle != nullptr);
+#endif
 #   else
         return (fileView != MAP_FAILED);
 #   endif
+    }
+
+    HANDLE MappedFile::handle() const {
+        return fileHandle;
     }
 
     uint8_t *MappedFile::data() const {

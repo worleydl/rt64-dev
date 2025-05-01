@@ -50,7 +50,11 @@ namespace RT64 {
 
         mz_zip_archive zipArchive = {};
         std::string zipPathStr = zipPath.u8string();
+#if 0
         impl->archiveOpen = mz_zip_reader_init_mem(&zipArchive, impl->zipMappedFile.data(), impl->zipMappedFile.size(), MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY);
+#else
+        impl->archiveOpen = mz_zip_reader_init_file(&zipArchive, zipPathStr.c_str(), MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY);
+#endif
         impl->basePath = basePath.empty() ? std::string() : (basePath + "/");
         impl->zipPath = zipPath;
         
@@ -135,11 +139,29 @@ namespace RT64 {
             return false;
         }
 
+// DLW: Modded to utilize file handle and ReadFile, large memory mapped files are a no-go on UWP
+#if 0
         // Validate the local dir header.
         const char *localDirHeader = reinterpret_cast<const char *>(&impl->zipMappedFile.data()[it->second.localHeaderOffset]);
         if (MZ_READ_LE32(localDirHeader) != MZ_ZIP_LOCAL_DIR_HEADER_SIG) {
             return false;
         }
+#else
+         // Set up the overlapped structure for asynchronous I/O.
+        OVERLAPPED overlapped = {};
+        overlapped.Offset = static_cast<DWORD>(it->second.localHeaderOffset & 0xFFFFFFFF);
+        overlapped.OffsetHigh = static_cast<DWORD>((it->second.localHeaderOffset >> 32) & 0xFFFFFFFF);
+
+        DWORD bytesRead = 0;
+        //const char* localDirHeader = new char[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
+        char localDirHeader[MZ_ZIP_LOCAL_DIR_HEADER_SIZE];
+
+        // Read the local directory header to validate it.
+        if (!ReadFile(impl->zipMappedFile.handle(), localDirHeader, MZ_ZIP_LOCAL_DIR_HEADER_SIZE, &bytesRead, &overlapped)) {
+            return false;
+        }
+
+#endif
 
         // Skip over unused data of the header.
         uint32_t ldhFilenameLenOfs = MZ_READ_LE16(localDirHeader + MZ_ZIP_LDH_FILENAME_LEN_OFS);
@@ -147,14 +169,30 @@ namespace RT64 {
         size_t dataAddress = it->second.localHeaderOffset + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + ldhFilenameLenOfs + ldhExtraLenOfs;
 
         // Make sure output vector has enough bytes to hold the data.
+#if 0
         const uint8_t *zipFileData = reinterpret_cast<const uint8_t *>(&impl->zipMappedFile.data()[dataAddress]);
+#else
+        // Move to the actual file data to decompress.
+        overlapped.Offset = static_cast<DWORD>(dataAddress & 0xFFFFFFFF);
+        overlapped.OffsetHigh = static_cast<DWORD>((dataAddress >> 32) & 0xFFFFFFFF);
+
+        const uint8_t* zipFileData = new uint8_t[it->second.compressedSize];
+        // Read the compressed data into the buffer.
+        if (!ReadFile(impl->zipMappedFile.handle(), const_cast<uint8_t*>(zipFileData), it->second.compressedSize, &bytesRead, &overlapped)) {
+            delete[] zipFileData;
+            return false;
+        }
+
+#endif
         if (it->second.compression == FileSystemZipInfo::Compression::Zstd) {
             if (ZSTD_decompress(fileData, it->second.uncompressedSize, zipFileData, it->second.compressedSize) != it->second.uncompressedSize) {
+                delete[] zipFileData;
                 return false;
             }
         }
         else if (it->second.compression == FileSystemZipInfo::Compression::Deflate) {
             if (tinfl_decompress_mem_to_mem(fileData, it->second.uncompressedSize, zipFileData, it->second.compressedSize, TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF) == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) {
+                delete[] zipFileData;
                 return false;
             }
         }
@@ -162,6 +200,7 @@ namespace RT64 {
             memcpy(fileData, zipFileData, it->second.uncompressedSize);
         }
 
+        delete[] zipFileData;
         return true;
     }
 

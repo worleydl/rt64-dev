@@ -265,7 +265,11 @@ namespace RT64 {
 
         // Create the swap chain with the buffer count specified from the configuration.
         const uint32_t bufferCount = (userConfig.displayBuffering == UserConfiguration::DisplayBuffering::Triple) ? 3 : 2;
+#if 0
         swapChain = presentGraphicsWorker->commandQueue->createSwapChain(appWindow->windowHandle, bufferCount, RenderFormat::B8G8R8A8_UNORM);
+#else
+        swapChain = presentGraphicsWorker->commandQueue->createSwapChain(appWindow->windowHandle, bufferCount, RenderFormat::R10G10B10A2_UNORM);
+#endif
 
         // Before configuring multisampling, make sure the device actually supports it for the formats we'll use. If it doesn't, turn off antialiasing in the configuration.
         const RenderSampleCounts colorSampleCounts = device->getSampleCountsSupported(RenderTarget::colorBufferFormat(usesHDR));

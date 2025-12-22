@@ -12,6 +12,7 @@
 
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <dxgi1_5.h> // for swap4 HDR
 
 #include "D3D12MemAlloc.h"
 

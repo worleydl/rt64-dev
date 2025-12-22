@@ -8,6 +8,12 @@
 Texture2D<float4> gInput : register(t1);
 SamplerState gSampler : register(s2);
 
+float3 Hdr(float3 sdr)
+{
+    float3 reinhard = sdr / (1.0 + sdr);
+    return pow(reinhard, 1 / 2.0); // Adjust denom for gamma adjust, 2.2 is standard but very bright
+}
+
 // Limit texture sampling to the area the VI can sample of the texture.
 
 float4 SampleInput(float2 uv) {
@@ -17,6 +23,9 @@ float4 SampleInput(float2 uv) {
     float4 sampledColor = gInput.SampleLevel(gSampler, clamp(uv, HalfPixel, LowerRight - HalfPixel), 0);
     float4 gammaCorrectedColor = pow(sampledColor, gConstants.gamma);
     gammaCorrectedColor.rgb *= max(1.0f - outsideBorder.x - outsideBorder.y, 0.0f);
+#ifdef HDR_OUTPUT
+    gammaCorrectedColor.rgb = Hdr(gammaCorrectedColor.rgb);
+#endif
     gammaCorrectedColor.a = 1.0f;
     return gammaCorrectedColor;
 }

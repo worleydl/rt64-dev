@@ -89,6 +89,8 @@ namespace RT64 {
             return DXGI_FORMAT_R16G16B16A16_SNORM;
         case RenderFormat::R16G16B16A16_SINT:
             return DXGI_FORMAT_R16G16B16A16_SINT;
+        case RenderFormat::R10G10B10A2_UNORM:
+            return DXGI_FORMAT_R10G10B10A2_UNORM;
         case RenderFormat::R32G32_TYPELESS:
             return DXGI_FORMAT_R32G32_TYPELESS;
         case RenderFormat::R32G32_FLOAT:
@@ -1247,6 +1249,10 @@ namespace RT64 {
             return;
         }
 #endif
+
+        // Setup HDR colorspace
+        IDXGISwapChain4* swap_chain4 = static_cast<IDXGISwapChain4 *>(swapChain1);
+        res = swap_chain4->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020);
 
         d3d = static_cast<IDXGISwapChain3 *>(swapChain1);
         d3d->SetMaximumFrameLatency(1);

@@ -98,6 +98,7 @@ namespace RT64 {
         R16G16B16A16_UINT,
         R16G16B16A16_SNORM,
         R16G16B16A16_SINT,
+        R10G10B10A2_UNORM,
         R32G32_TYPELESS,
         R32G32_FLOAT,
         R32G32_UINT,
@@ -521,6 +522,7 @@ namespace RT64 {
         case RenderFormat::R32_FLOAT:
         case RenderFormat::R32_UINT:
         case RenderFormat::R32_SINT:
+        case RenderFormat::R10G10B10A2_UNORM:
             return 4;
         case RenderFormat::R8G8_TYPELESS:
         case RenderFormat::R8G8_UNORM:
@@ -583,6 +585,7 @@ namespace RT64 {
         case RenderFormat::R16G16B16A16_UINT:
         case RenderFormat::R16G16B16A16_SNORM:
         case RenderFormat::R16G16B16A16_SINT:
+        case RenderFormat::R10G10B10A2_UNORM:
         case RenderFormat::R32G32_TYPELESS:
         case RenderFormat::R32G32_FLOAT:
         case RenderFormat::R32G32_UINT:

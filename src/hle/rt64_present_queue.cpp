@@ -9,8 +9,20 @@
 
 #include "rt64_workload_queue.h"
 
+// todo: fix include
+// including from present_queue.h causes a bunch of link issues...
+#define LIBRA_RUNTIME_D3D12
+#define LIBRA_RUNTIME_VULKAN
+#include "librashader.h"
+#include "librashader_ld.h"
+#include "plume_d3d12.h"
+
 namespace RT64 {
     // PresentQueue
+
+    libra_instance_t libra;
+    libra_d3d12_filter_chain_t filterChain = nullptr;
+    std::string currentShaderPath;
 
     PresentQueue::PresentQueue() {
         reset();
@@ -26,6 +38,13 @@ namespace RT64 {
         }
 
         presentIdCondition.notify_all();
+    }
+
+    void PresentQueue::cleanupShader() {
+        if (filterChain) {
+            libra.d3d12_filter_chain_free(&filterChain);
+            filterChain = nullptr;
+        }
     }
 
     void PresentQueue::reset() {
@@ -264,6 +283,14 @@ namespace RT64 {
                 const RenderTexture *swapChainTexture = ext.swapChain->getTexture(i);
                 swapChainFramebuffers[i] = ext.device->createFramebuffer(RenderFramebufferDesc(&swapChainTexture, 1));
             }
+
+            // setup intermediate buffers used when slang post-processing is enabled
+            intermediateFramebuffer.reset();
+            intermediateTexture = ext.device->createTexture(plume::RenderTextureDesc::ColorTarget(
+                ext.swapChain->getWidth(), ext.swapChain->getHeight(), RenderFormat::B8G8R8A8_UNORM));
+            const RenderTexture* localIntermediateTexture = intermediateTexture.get();
+            intermediateFramebuffer =
+                ext.device->createFramebuffer(RenderFramebufferDesc(&localIntermediateTexture, 1));
         }
         
         for (int32_t i = 0; i < framesToPresent; i++) {
@@ -305,11 +332,13 @@ namespace RT64 {
 
             if (presentFrame && swapChainValid) {
                 // Draw the framebuffer with the VI renderer.
+                RenderTexture* localIntermediateTexture = intermediateTexture.get();
                 RenderTexture *swapChainTexture = ext.swapChain->getTexture(swapChainIndex);
+                RenderFramebuffer* localIntermediateFramebuffer = intermediateFramebuffer.get();
                 RenderFramebuffer *swapChainFramebuffer = swapChainFramebuffers[swapChainIndex].get();
                 RenderCommandList *commandList = ext.presentGraphicsWorker->commandList.get();
                 commandList->begin();
-                commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
+                commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::COLOR_WRITE));
                 
                 VIRenderer::RenderParams renderParams;
                 if (colorTarget != nullptr) {
@@ -339,13 +368,77 @@ namespace RT64 {
                         renderParams.textureHeight = colorTarget->height;
                     }
                 }
+
+                 //std::string desiredShaderPath = "C:\\dev\\std\\Starfox64Recomp\\build_win\Debug\\stock.slangp";
+                 std::string desiredShaderPath = "C:/dev/std/slang/usr/share/libretro/shaders/shaders_slang/presets/crt-royale-smooth.slangp";
+
+                // Check if we need to (re)load the shader
+                if (!desiredShaderPath.empty() && desiredShaderPath != currentShaderPath && swapChainValid) {
+                    cleanupShader();
+
+                    libra = librashader_load_instance();
+
+                    libra_shader_preset_t preset;
+                    libra_error_t error = libra.preset_create(desiredShaderPath.c_str(), &preset);
+                    libra.preset_print(&preset);
+
+                    auto* d3d12Device = static_cast<plume::D3D12Device*>(ext.device);
+
+                    libra_error_t err = libra.d3d12_filter_chain_create(&preset, d3d12Device->d3d,
+                                                                        NULL, // options (can usually be NULL)
+                                                                        &filterChain);
+
+                    // todo: error handling
+                    currentShaderPath = desiredShaderPath;
+                } else if (desiredShaderPath.empty()) {
+                    cleanupShader();
+                    currentShaderPath.clear();
+                }
+
                 
-                commandList->setFramebuffer(swapChainFramebuffer);
+                commandList->setFramebuffer(localIntermediateFramebuffer);
                 commandList->clearColor();
 
                 if (renderParams.texture != nullptr) {
                     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(renderParams.texture, RenderTextureLayout::SHADER_READ));
                     viRenderer->render(renderParams);
+
+                     commandList->barriers(
+                        RenderBarrierStage::GRAPHICS,
+                        RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::SHADER_READ));
+                    commandList->barriers(RenderBarrierStage::GRAPHICS,
+                                          RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
+                    commandList->setFramebuffer(swapChainFramebuffer);
+                    commandList->clearColor();
+
+                    // librashader hookup
+                    auto* d3d12CmdList = static_cast<plume::D3D12CommandList*>(commandList)->d3d;
+                    auto* d3d12Input = static_cast<plume::D3D12Texture*>(localIntermediateTexture)->d3d;
+                    auto* d3d12Output = static_cast<plume::D3D12Texture*>(swapChainTexture)->d3d;
+
+                    size_t frameCount = frameCounters.presented;
+
+                    D3D12Device* interfaceDevice = static_cast<D3D12Device*>(ext.device);
+                    RenderDescriptorRange descriptorRange(RenderDescriptorRangeType::TEXTURE, 0, 1);
+                    auto descriptorSet =
+                        interfaceDevice->createDescriptorSet(RenderDescriptorSetDesc(&descriptorRange, 1));
+
+                    libra_image_d3d12_handle_t input_handle = { d3d12Input };
+                    libra_image_d3d12_handle_t output_handle = { d3d12Output };
+                    libra_image_d3d12_t input = {};
+                    libra_image_d3d12_t output = {};
+                    input.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
+                    output.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
+                    input.handle = input_handle;
+                    output.handle = output_handle;
+
+                    libra_error_t frameErr = libra.d3d12_filter_chain_frame(&filterChain, d3d12CmdList, frameCount,
+                                                                            input, output, NULL, NULL, NULL);
+                } else {
+                    commandList->barriers(RenderBarrierStage::GRAPHICS,
+                                          RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
+                    commandList->setFramebuffer(swapChainFramebuffer);
+                    commandList->clearColor();
                 }
 
                 RenderHookDraw *drawHook = GetRenderHookDraw();

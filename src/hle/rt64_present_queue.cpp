@@ -20,6 +20,11 @@
 #include "../../include/librashader_ld.h"
 #include <filesystem>
 
+// todo: where to put this?
+namespace zelda64 {
+    std::filesystem::path get_shader_path();
+}
+
 namespace RT64 {
     libra_instance_t libra;
     libra_d3d12_filter_chain_t filterChain = nullptr;
@@ -378,13 +383,7 @@ namespace RT64 {
                 }
 
                 // todo: setup via menu
-                //std::string desiredShaderPath = "E:/shaders_slang/bezel/Mega_Bezel/Presets/MBZ__5__POTATO.slangp";
-                std::string desiredShaderPath = "E:/shaders_slang/presets/fsr/fsr-crt-potato-bvm.slangp";
-                //std::string desiredShaderPath = "E:/shaders_slang/presets/fsr/fsr-aa-lv2-glass.slangp";
-                //std::string desiredShaderPath = "E:/shaders_slang/bezel/Mega_Bezel/Presets/Base_CRT_Presets/MBZ__0__SMOOTH-ADV-NO-REFLECT__MEGATRON.slangp";
-                //std::string desiredShaderPath = "E:/shaders_slang/presets/crt-hyllian-smartblur-sgenpt.slangp";
-                // desiredShaderPath = ext.sharedResources->userConfig.shaderPresetPath;
-                //std::string desiredShaderPath = "E:/shaders_slang/presets/crt-geom-simple.slangp";
+                std::string desiredShaderPath = zelda64::get_shader_path().string();
 
                 // Check if we need to (re)load the shader
                 if (!desiredShaderPath.empty() && desiredShaderPath != currentShaderPath && swapChainValid ) {

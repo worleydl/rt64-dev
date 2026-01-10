@@ -418,49 +418,51 @@ namespace RT64 {
 
                 bool shaderApplied = false;
                 
-                commandList->setFramebuffer(localIntermediateFramebuffer);
+                commandList->setFramebuffer(filterChain ? localIntermediateFramebuffer : swapChainFramebuffer);
                 commandList->clearColor();
 
                 if (renderParams.texture != nullptr) {
                     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(renderParams.texture, RenderTextureLayout::SHADER_READ));
                     viRenderer->render(renderParams);
-                    commandList->end(); //librashader requires commandlist to be wrapped for current phase
 
-                    const RenderCommandList *localCmdList = ext.presentGraphicsWorker->commandList.get();
-                    ext.presentGraphicsWorker->commandQueue->executeCommandLists(&localCmdList, 1, nullptr, 0, nullptr, 0, ext.presentGraphicsWorker->commandFence.get());
-                    ext.presentGraphicsWorker->wait();
+                    if (filterChain) {
+                        commandList->end(); // librashader requires commandlist to be wrapped for current phase
 
-                    commandList->begin(); // new list for menu to avoid libra corruption
+                        const RenderCommandList* localCmdList = ext.presentGraphicsWorker->commandList.get();
+                        ext.presentGraphicsWorker->commandQueue->executeCommandLists(
+                            &localCmdList, 1, nullptr, 0, nullptr, 0, ext.presentGraphicsWorker->commandFence.get());
+                        ext.presentGraphicsWorker->wait();
 
-                    commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::SHADER_READ));
-                    commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
-                    commandList->setFramebuffer(swapChainFramebuffer);
-                    commandList->clearColor();
+                        commandList->begin(); // new list for menu to avoid libra corruption
 
-                    // librashader hookup
-                    auto* d3d12CmdList = static_cast<plume::D3D12CommandList*> (commandList)->d3d;
-                    auto* d3d12Input = static_cast<plume::D3D12Texture*>(localIntermediateTexture)->d3d;
-                    auto* d3d12Output = static_cast<plume::D3D12Texture*>(swapChainTexture)->d3d;
+                        commandList->barriers(
+                            RenderBarrierStage::GRAPHICS,
+                            RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::SHADER_READ));
+                        commandList->barriers(RenderBarrierStage::GRAPHICS,
+                                              RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
+                        commandList->setFramebuffer(swapChainFramebuffer);
+                        commandList->clearColor();
 
-                    size_t frameCount = frameCounters.presented;
+                        // librashader hookup
+                        auto* d3d12CmdList = static_cast<plume::D3D12CommandList*>(commandList)->d3d;
+                        auto* d3d12Input = static_cast<plume::D3D12Texture*>(localIntermediateTexture)->d3d;
+                        auto* d3d12Output = static_cast<plume::D3D12Texture*>(swapChainTexture)->d3d;
 
-                    libra_image_d3d12_handle_t input_handle = { d3d12Input };
-                    libra_image_d3d12_handle_t output_handle = { d3d12Output };
-                    libra_image_d3d12_t input = {};
-                    libra_image_d3d12_t output = {};
-                    input.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
-                    output.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
-                    input.handle = input_handle;
-                    output.handle = output_handle;
+                        size_t frameCount = frameCounters.presented;
 
-                    libra_error_t frameErr = libra.d3d12_filter_chain_frame(&filterChain, d3d12CmdList, frameCount,
-                                                                            input,
-                                                                            output,
-                                                                            NULL,
-                                                                            NULL,
-                                                                            NULL
-                    );
-                } else {
+                        libra_image_d3d12_handle_t input_handle = { d3d12Input };
+                        libra_image_d3d12_handle_t output_handle = { d3d12Output };
+                        libra_image_d3d12_t input = {};
+                        libra_image_d3d12_t output = {};
+                        input.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
+                        output.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
+                        input.handle = input_handle;
+                        output.handle = output_handle;
+
+                        libra_error_t frameErr = libra.d3d12_filter_chain_frame(&filterChain, d3d12CmdList, frameCount,
+                                                                                input, output, NULL, NULL, NULL);
+                    }
+                } else if (filterChain) {
                     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
                     commandList->setFramebuffer(swapChainFramebuffer);
                     commandList->clearColor();

@@ -49,6 +49,8 @@ namespace RT64 {
         FramebufferChangePool screenFbChangePool;
         std::atomic<bool> viewRDRAM = false;
         std::vector<std::unique_ptr<RenderFramebuffer>> swapChainFramebuffers;
+        std::unique_ptr<RenderFramebuffer> intermediateFramebuffer{};
+        std::unique_ptr<RenderTexture> intermediateTexture{};
         std::unique_ptr<RenderCommandSemaphore> acquiredSemaphore;
         std::unique_ptr<RenderCommandSemaphore> drawSemaphore;
         std::unique_ptr<VIRenderer> viRenderer;
@@ -60,6 +62,7 @@ namespace RT64 {
 
         PresentQueue();
         ~PresentQueue();
+        void cleanupShader();
         void reset();
         void advanceToNextPresent();
         void repeatLastPresent();

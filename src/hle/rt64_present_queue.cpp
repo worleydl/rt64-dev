@@ -9,37 +9,26 @@
 
 #include "rt64_workload_queue.h"
 
-#include "plume_d3d12.h"
-
-// todo: fix include
-// including from present_queue.h causes a bunch of link issues...
-//#include "librashader_ld.h"
-#define LIBRA_RUNTIME_D3D12
-#define LIBRA_RUNTIME_VULKAN
-#include "../../include/librashader.h"
-#include "../../include/librashader_ld.h"
-#include <filesystem>
-
 // todo: where to put this?
 namespace zelda64 {
     std::filesystem::path get_shader_path();
 }
 
 namespace RT64 {
-    libra_instance_t libra;
-    libra_d3d12_filter_chain_t filterChain = nullptr;
-    std::string currentShaderPath;
+
     // PresentQueue
 
     PresentQueue::PresentQueue() {
         reset();
+
+        librafx = std::make_unique<Librashader>();
     }
 
     PresentQueue::~PresentQueue() {
         presentThreadRunning = false;
         cursorCondition.notify_all();
 
-        cleanupShader();
+        librafx.get()->reset();
 
         if (presentThread != nullptr) {
             presentThread->join();
@@ -47,14 +36,6 @@ namespace RT64 {
         }
 
         presentIdCondition.notify_all();
-    }
-
-    void PresentQueue::cleanupShader()
-    {
-        if (filterChain) {
-            libra.d3d12_filter_chain_free(&filterChain);
-            filterChain = nullptr;
-        }
     }
 
     void PresentQueue::reset() {
@@ -345,13 +326,19 @@ namespace RT64 {
 
             if (presentFrame && swapChainValid) {
                 // Draw the framebuffer with the VI renderer.
+                bool libraReady = librafx.get()->ready();
                 RenderTexture* localIntermediateTexture = intermediateTexture.get();
                 RenderTexture *swapChainTexture = ext.swapChain->getTexture(swapChainIndex);
                 RenderFramebuffer* localIntermediateFramebuffer = intermediateFramebuffer.get();
                 RenderFramebuffer *swapChainFramebuffer = swapChainFramebuffers[swapChainIndex].get();
                 RenderCommandList *commandList = ext.presentGraphicsWorker->commandList.get();
                 commandList->begin();
-                commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::COLOR_WRITE));
+
+                if (libraReady)
+                  commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::COLOR_WRITE));
+                else
+                  commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
+
                 
                 VIRenderer::RenderParams renderParams;
                 if (colorTarget != nullptr) {
@@ -382,87 +369,35 @@ namespace RT64 {
                     }
                 }
 
-                // todo: setup via menu
                 std::string desiredShaderPath = zelda64::get_shader_path().string();
 
                 // Check if we need to (re)load the shader
-                if (!desiredShaderPath.empty() && desiredShaderPath != currentShaderPath && swapChainValid ) {
-                    cleanupShader();
-                    libra = librashader_load_instance();
-
-                    libra_shader_preset_t preset;
-                    libra_error_t error = libra.preset_create(desiredShaderPath.c_str(), &preset);
-                    libra.preset_print(&preset);
-
-                    // Initialization requires the Native Device (ID3D12Device)
-                    // You must implement getNativeDevice() on your device wrapper
-                    auto* d3d12Device = static_cast<plume::D3D12Device*>(ext.device);
-
-                    const filter_chain_d3d12_opt_t filterOptions = {
-                        LIBRASHADER_CURRENT_VERSION,
-                        false, // Force use of hlsl
-                        false, // Force disable mipmaps
-                        true   // Disable cache for UWP, it blows up the driver
-                    };
-
-                    libra_error_t err = libra.d3d12_filter_chain_create(&preset, d3d12Device->d3d,
-                                                                        &filterOptions,
-                                                                        &filterChain);
-
-                    // todo: error handling
-                    currentShaderPath = desiredShaderPath;
+                if (!desiredShaderPath.empty() && desiredShaderPath != librafx.get()->currentShader() && swapChainValid) {
+                    librafx.get()->setup(ext.device, desiredShaderPath);
                 } else if (desiredShaderPath.empty()) {
-                    cleanupShader();
-                    currentShaderPath.clear();
+                    librafx.get()->reset();
                 }
 
                 bool shaderApplied = false;
-                
-                commandList->setFramebuffer(filterChain ? localIntermediateFramebuffer : swapChainFramebuffer);
+
+                commandList->setFramebuffer(libraReady ? localIntermediateFramebuffer : swapChainFramebuffer);
                 commandList->clearColor();
 
                 if (renderParams.texture != nullptr) {
                     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(renderParams.texture, RenderTextureLayout::SHADER_READ));
                     viRenderer->render(renderParams);
 
-                    if (filterChain) {
-                        commandList->end(); // librashader requires commandlist to be wrapped for current phase
-
-                        const RenderCommandList* localCmdList = ext.presentGraphicsWorker->commandList.get();
-                        ext.presentGraphicsWorker->commandQueue->executeCommandLists(
-                            &localCmdList, 1, nullptr, 0, nullptr, 0, ext.presentGraphicsWorker->commandFence.get());
-                        ext.presentGraphicsWorker->wait();
-
-                        commandList->begin(); // new list for menu to avoid libra corruption
-
-                        commandList->barriers(
-                            RenderBarrierStage::GRAPHICS,
-                            RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::SHADER_READ));
-                        commandList->barriers(RenderBarrierStage::GRAPHICS,
-                                              RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
-                        commandList->setFramebuffer(swapChainFramebuffer);
-                        commandList->clearColor();
-
-                        // librashader hookup
-                        auto* d3d12CmdList = static_cast<plume::D3D12CommandList*>(commandList)->d3d;
-                        auto* d3d12Input = static_cast<plume::D3D12Texture*>(localIntermediateTexture)->d3d;
-                        auto* d3d12Output = static_cast<plume::D3D12Texture*>(swapChainTexture)->d3d;
-
-                        size_t frameCount = frameCounters.presented;
-
-                        libra_image_d3d12_handle_t input_handle = { d3d12Input };
-                        libra_image_d3d12_handle_t output_handle = { d3d12Output };
-                        libra_image_d3d12_t input = {};
-                        libra_image_d3d12_t output = {};
-                        input.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
-                        output.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
-                        input.handle = input_handle;
-                        output.handle = output_handle;
-
-                        libra_error_t frameErr = libra.d3d12_filter_chain_frame(&filterChain, d3d12CmdList, frameCount,
-                                                                                input, output, NULL, NULL, NULL);
+                    if (libraReady) {
+                        Librashader::LibraParams libraparams;
+                        libraparams.commandList = commandList;
+                        libraparams.frameCount = frameCounters.presented;
+                        libraparams.intermediateTexture = localIntermediateTexture;
+                        libraparams.swapchainTexture = swapChainTexture;
+                        libraparams.swapchainFramebuffer = swapChainFramebuffer;
+                        libraparams.worker = ext.presentGraphicsWorker;
+                        librafx.get()->postprocess(libraparams);
                     }
-                } else if (filterChain) {
+                } else if (libraReady) {
                     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
                     commandList->setFramebuffer(swapChainFramebuffer);
                     commandList->clearColor();

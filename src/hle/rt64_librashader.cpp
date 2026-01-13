@@ -17,6 +17,7 @@
 namespace RT64 {
     // Librashader
     libra_instance_t libra;
+    libra_shader_preset_t preset;
     libra_d3d12_filter_chain_t filterChain = nullptr;
     std::string currentShaderPath;
 
@@ -75,12 +76,16 @@ namespace RT64 {
             libra.d3d12_filter_chain_free(&filterChain);
             filterChain = nullptr;
         }
+
+        if (preset) {
+            libra.preset_free(&preset);
+            preset = nullptr;
+        }
     }
 
     bool Librashader::setup(RenderDevice *device, std::string path) {
         reset();
 
-        libra_shader_preset_t preset;
         libra_error_t err = libra.preset_create(path.c_str(), &preset);
         // todo error check
         //libra.preset_print(&preset);

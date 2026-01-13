@@ -286,6 +286,14 @@ namespace RT64 {
             intermediateFramebuffer = ext.device->createFramebuffer(RenderFramebufferDesc(&localIntermediateTexture, 1));
         }
 
+        // Check if we need to (re)load the shader
+        std::string desiredShaderPath = zelda64::get_shader_path().string();
+        if (desiredShaderPath != librafx.get()->currentShader() && swapChainValid) {
+            if (desiredShaderPath.empty())
+                librafx.get()->reset();
+            else
+                librafx.get()->setup(ext.device, desiredShaderPath);
+        }
         
         for (int32_t i = 0; i < framesToPresent; i++) {
             uint32_t frameCountersNextPresented = 0;
@@ -368,17 +376,6 @@ namespace RT64 {
                         renderParams.textureHeight = colorTarget->height;
                     }
                 }
-
-                std::string desiredShaderPath = zelda64::get_shader_path().string();
-
-                // Check if we need to (re)load the shader
-                if (!desiredShaderPath.empty() && desiredShaderPath != librafx.get()->currentShader() && swapChainValid) {
-                    librafx.get()->setup(ext.device, desiredShaderPath);
-                } else if (desiredShaderPath.empty()) {
-                    librafx.get()->reset();
-                }
-
-                bool shaderApplied = false;
 
                 commandList->setFramebuffer(libraReady ? localIntermediateFramebuffer : swapChainFramebuffer);
                 commandList->clearColor();

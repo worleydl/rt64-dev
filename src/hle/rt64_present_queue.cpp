@@ -394,10 +394,6 @@ namespace RT64 {
                         libraparams.worker = ext.presentGraphicsWorker;
                         librafx.get()->postprocess(libraparams);
                     }
-                } else if (libraReady) {
-                    commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
-                    commandList->setFramebuffer(swapChainFramebuffer);
-                    commandList->clearColor();
                 }
 
                 RenderHookDraw *drawHook = GetRenderHookDraw();

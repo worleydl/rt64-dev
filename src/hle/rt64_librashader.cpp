@@ -13,8 +13,10 @@
 #include "../../include/librashader.h"
 #include "../../include/librashader_ld.h"
 
-
 namespace RT64 {
+    // hack: setup data for UI, not sure if there's a better way to export...
+    void ui_set_shader_params(std::vector<LibraRuntimeParam> params);
+
     // Librashader
     libra_instance_t libra;
     libra_shader_preset_t preset = nullptr;
@@ -124,6 +126,7 @@ namespace RT64 {
             });
         }
         libra.preset_free_runtime_params(preset_parameters);
+        ui_set_shader_params(currentRuntimeParams);
 
         auto* d3d12Device = static_cast<plume::D3D12Device*>(device);
 

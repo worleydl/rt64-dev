@@ -8,8 +8,19 @@
 #include "render/rt64_render_worker.h"
 
 namespace RT64 {
+    // Based off libra preset param but also keeps track of current value alongside initial to support minimal reset to default
+    struct LibraRuntimeParam {
+        std::string name;
+        std::string description;
+        float initial;
+        float min;
+        float max;
+        float step;
+        float current_value;
+    };
+
     struct Librashader {
-        struct LibraParams {
+        struct LibraFrameParams {
             RenderCommandList *commandList = nullptr;
             RenderFramebuffer* swapchainFramebuffer = nullptr;
             RenderTexture *intermediateTexture = nullptr;
@@ -21,9 +32,11 @@ namespace RT64 {
         Librashader();
         ~Librashader();
         std::string currentShader();
+        std::vector<LibraRuntimeParam> getRuntimeParams();
+        void updateRuntimeParam(const LibraRuntimeParam param);
         bool ready();
         void reset();
         bool setup(RenderDevice* device, std::string path);
-        void postprocess(const LibraParams &p);
+        void postprocess(const LibraFrameParams &p);
     };
 }

@@ -385,14 +385,14 @@ namespace RT64 {
                     viRenderer->render(renderParams);
 
                     if (libraReady) {
-                        Librashader::LibraParams libraparams;
-                        libraparams.commandList = commandList;
-                        libraparams.frameCount = frameCounters.presented;
-                        libraparams.intermediateTexture = localIntermediateTexture;
-                        libraparams.swapchainTexture = swapChainTexture;
-                        libraparams.swapchainFramebuffer = swapChainFramebuffer;
-                        libraparams.worker = ext.presentGraphicsWorker;
-                        librafx.get()->postprocess(libraparams);
+                        Librashader::LibraFrameParams frameparams;
+                        frameparams.commandList = commandList;
+                        frameparams.frameCount = frameCounters.presented;
+                        frameparams.intermediateTexture = localIntermediateTexture;
+                        frameparams.swapchainTexture = swapChainTexture;
+                        frameparams.swapchainFramebuffer = swapChainFramebuffer;
+                        frameparams.worker = ext.presentGraphicsWorker;
+                        librafx.get()->postprocess(frameparams);
                     }
                 }
 

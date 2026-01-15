@@ -4,7 +4,7 @@
 
 #include "rt64_librashader.h"
 
-#include <filesystem>
+#include <vector>
 
 #include "plume_d3d12.h"
 
@@ -17,8 +17,11 @@
 namespace RT64 {
     // Librashader
     libra_instance_t libra;
-    libra_shader_preset_t preset;
+    libra_shader_preset_t preset = nullptr;
     libra_d3d12_filter_chain_t filterChain = nullptr;
+
+    std::vector<LibraRuntimeParam> currentRuntimeParams;
+
     std::string currentShaderPath;
 
     Librashader::Librashader() {
@@ -33,7 +36,18 @@ namespace RT64 {
         return currentShaderPath;
     }
 
-    void Librashader::postprocess(const Librashader::LibraParams &lp) {
+    std::vector<LibraRuntimeParam> Librashader::getRuntimeParams() {
+        return currentRuntimeParams;
+    }
+
+    void Librashader::updateRuntimeParam(LibraRuntimeParam parameter) {
+        // todo: api specific routing
+        if (filterChain) {
+            libra.d3d12_filter_chain_set_param(&filterChain, parameter.name.c_str(), parameter.current_value);
+        }
+    }
+
+    void Librashader::postprocess(const Librashader::LibraFrameParams &lp) {
         // librashader requires commandlist to be wrapped for current phase
         lp.commandList->end();
 
@@ -81,14 +95,35 @@ namespace RT64 {
             libra.preset_free(&preset);
             preset = nullptr;
         }
+
+        currentRuntimeParams.clear();
     }
 
     bool Librashader::setup(RenderDevice *device, std::string path) {
         reset();
 
         libra_error_t err = libra.preset_create(path.c_str(), &preset);
-        // todo error check
+        // todo: error checks for preset create and get runtime params
         //libra.preset_print(&preset);
+
+        // Build out parameter vector
+        currentRuntimeParams.clear();
+        libra_preset_param_list_t preset_parameters;
+        err = libra.preset_get_runtime_params(&preset, &preset_parameters);
+
+        for (int i = 0; i < preset_parameters.length; i++) {
+            libra_preset_param_t param = preset_parameters.parameters[i];
+            currentRuntimeParams.push_back({
+                param.name,
+                param.description,
+                param.initial, // keep track of this in case we want to reset to defaults
+                param.minimum,
+                param.maximum,
+                param.step,
+                param.initial // current_value = initial during init
+            });
+        }
+        libra.preset_free_runtime_params(preset_parameters);
 
         auto* d3d12Device = static_cast<plume::D3D12Device*>(device);
 

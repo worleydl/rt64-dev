@@ -63,37 +63,58 @@ namespace RT64 {
         lp.commandList->end();
 
         const RenderCommandList *constCmd = lp.worker->commandList.get();
-		lp.worker->commandQueue->executeCommandLists(&constCmd, 1, nullptr, 0, nullptr, 0, lp.worker->commandFence.get());
-		lp.worker->wait();
+        lp.worker->commandQueue->executeCommandLists(&constCmd, 1, nullptr, 0, nullptr, 0, lp.worker->commandFence.get());
+        lp.worker->wait();
 
         // new list for menu to avoid libra corruption
-		lp.commandList->begin();
+        lp.commandList->begin();
 
-		lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.intermediateTexture, RenderTextureLayout::SHADER_READ));
-		lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.swapchainTexture, RenderTextureLayout::COLOR_WRITE));
-		lp.commandList->setFramebuffer(lp.swapchainFramebuffer);
-		lp.commandList->clearColor();
+        lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.intermediateTexture, RenderTextureLayout::SHADER_READ));
+        lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.swapchainTexture, RenderTextureLayout::COLOR_WRITE));
+        lp.commandList->setFramebuffer(lp.swapchainFramebuffer);
+        lp.commandList->clearColor();
 
-		// librashader hookup
+        // librashader hookup
 
         // todo: bring back dx
         /*
-		auto* d3d12CmdList = static_cast<plume::D3D12CommandList*>(lp.commandList)->d3d;
-		auto* d3d12Input = static_cast<plume::D3D12Texture*>(lp.intermediateTexture)->d3d;
-		auto* d3d12Output = static_cast<plume::D3D12Texture*>(lp.swapchainTexture)->d3d;
+        auto* d3d12CmdList = static_cast<plume::D3D12CommandList*>(lp.commandList)->d3d;
+        auto* d3d12Input = static_cast<plume::D3D12Texture*>(lp.intermediateTexture)->d3d;
+        auto* d3d12Output = static_cast<plume::D3D12Texture*>(lp.swapchainTexture)->d3d;
 
-		libra_image_d3d12_handle_t input_handle = { d3d12Input };
-		libra_image_d3d12_handle_t output_handle = { d3d12Output };
-		libra_image_d3d12_t input = {};
-		libra_image_d3d12_t output = {};
-		input.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
-		output.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
-		input.handle = input_handle;
-		output.handle = output_handle;
+        libra_image_d3d12_handle_t input_handle = { d3d12Input };
+        libra_image_d3d12_handle_t output_handle = { d3d12Output };
+        libra_image_d3d12_t input = {};
+        libra_image_d3d12_t output = {};
+        input.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
+        output.image_type = LIBRA_D3D12_IMAGE_TYPE_RESOURCE;
+        input.handle = input_handle;
+        output.handle = output_handle;
 
-		libra_error_t frameErr = libra.d3d12_filter_chain_frame(&dx_filterChain, d3d12CmdList, lp.frameCount,
-																input, output, NULL, NULL, NULL);
-        */
+        libra_error_t frameErr = libra.d3d12_filter_chain_frame(&dx_filterChain, d3d12CmdList, lp.frameCount,
+            input, output, NULL, NULL, NULL);
+      */
+
+        auto* vkCmdList = static_cast<plume::VulkanCommandList*>(lp.commandList)->vk;
+        auto* vkInput = static_cast<plume::VulkanTexture*>(lp.intermediateTexture);
+        auto* vkOutput = static_cast<plume::VulkanTexture*>(lp.swapchainTexture);
+
+        libra_image_vk_t input = {
+            .handle = vkInput->vk,
+            .format = vkInput->imageFormat,
+            .width = vkInput->desc.width,
+            .height = vkInput->desc.height
+        };
+
+        libra_image_vk_t output = {
+            .handle = vkOutput->vk,
+            .format = vkOutput->imageFormat,
+            .width = vkOutput->desc.width,
+            .height = vkOutput->desc.height
+        };
+
+        libra_error_t frameErr = libra.vk_filter_chain_frame(&vk_filterChain, vkCmdList, lp.frameCount,
+                                                                input, output, NULL, NULL, NULL);
     }
 
     bool Librashader::ready() {
@@ -149,17 +170,38 @@ namespace RT64 {
 /*
         auto* d3d12Device = static_cast<plume::D3D12Device*>(device);
 
-		const filter_chain_d3d12_opt_t filterOptions = {
-		    LIBRASHADER_CURRENT_VERSION,
-		    false, // Force use of hlsl
-		    false, // Force disable mipmaps
-		    true   // Disable cache for UWP, it blows up the driver
-	    };
+        const filter_chain_d3d12_opt_t filterOptions = {
+            LIBRASHADER_CURRENT_VERSION,
+            false, // Force use of hlsl
+            false, // Force disable mipmaps
+            true   // Disable cache for UWP, it blows up the driver
+        };
 
         err = libra.d3d12_filter_chain_create(&preset, d3d12Device->d3d,
                                                             &filterOptions,
                                                             &filterChain);
 */
+
+
+        auto* interfaceDevice = static_cast<plume::VulkanDevice*>(device);
+
+        const libra_device_vk_t vkLibraDevice = {
+            .physical_device = nullptr,
+            .instance = interfaceDevice->renderInterface->instance,
+            .device = interfaceDevice->vk,
+            .queue = nullptr,
+            .entry = nullptr
+        };
+
+        const filter_chain_vk_opt_t vkFilterChainOpts = {
+            .version = LIBRASHADER_CURRENT_VERSION,
+            .frames_in_flight = 0,
+            .force_no_mipmaps = false,
+            .use_dynamic_rendering = true,
+            .disable_cache = false
+        };
+
+        err = libra.vk_filter_chain_create(&preset, vkLibraDevice, &vkFilterChainOpts, &vk_filterChain);
 
         if (!err)
             currentShaderPath = path;

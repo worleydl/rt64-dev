@@ -9,7 +9,7 @@ if (APPLE)
 endif()
 
 option(RT64_STATIC "Build RT64 as a static library" OFF)
-
+option(RT64_LIBRASHADER "Build RT64 with post-processing support via librashader" OFF)
 
 option(RT64_SDL_WINDOW_VULKAN "Build RT64 to expect an SDL Window outside of Windows" OFF)
 
@@ -301,6 +301,11 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux" AND RT64_SDL_WINDOW_VULKAN)
     add_compile_definitions("RT64_SDL_WINDOW_VULKAN")
 endif()
 
+if (RT64_LIBRASHADER)
+    add_compile_definitions("RT64_LIBRASHADER")
+    include_directories("${PROJECT_SOURCE_DIR}/src/contrib/librashader/include")
+endif()
+
 set (SOURCES
     "${PROJECT_SOURCE_DIR}/src/common/rt64_common.cpp"
     "${PROJECT_SOURCE_DIR}/src/common/rt64_dynamic_libraries.cpp"
@@ -349,6 +354,7 @@ set (SOURCES
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_framebuffer_storage.cpp"
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_game_frame.cpp"
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_interpreter.cpp"
+    "${PROJECT_SOURCE_DIR}/src/hle/rt64_librashader.cpp"
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_light_manager.cpp"
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_present_queue.cpp"
     "${PROJECT_SOURCE_DIR}/src/hle/rt64_projection.cpp"

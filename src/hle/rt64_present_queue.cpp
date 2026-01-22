@@ -14,11 +14,15 @@ namespace RT64 {
 
     PresentQueue::PresentQueue() {
         reset();
+
+        librafx = std::make_unique<Librashader>();
     }
 
     PresentQueue::~PresentQueue() {
         presentThreadRunning = false;
         cursorCondition.notify_all();
+
+        librafx.get()->reset();
 
         if (presentThread != nullptr) {
             presentThread->join();
@@ -264,6 +268,24 @@ namespace RT64 {
                 const RenderTexture *swapChainTexture = ext.swapChain->getTexture(i);
                 swapChainFramebuffers[i] = ext.device->createFramebuffer(RenderFramebufferDesc(&swapChainTexture, 1));
             }
+
+            // setup intermediate buffers used when slang post-processing is enabled
+            intermediateFramebuffer.reset();
+            intermediateTexture = ext.device->createTexture(
+                plume::RenderTextureDesc::ColorTarget(
+                    ext.swapChain->getWidth(), ext.swapChain->getHeight(), RenderFormat::B8G8R8A8_UNORM
+                )
+            );
+            const RenderTexture* localIntermediateTexture = intermediateTexture.get();
+            intermediateFramebuffer = ext.device->createFramebuffer(RenderFramebufferDesc(&localIntermediateTexture, 1));
+        }
+
+        // Check if we need to (re)load the shader
+        if (desiredShader != librafx.get()->getCurrentShader()) {
+            if (desiredShader.empty())
+                librafx.get()->reset();
+            else
+                librafx.get()->setup(ext.device, desiredShader);
         }
         
         for (int32_t i = 0; i < framesToPresent; i++) {

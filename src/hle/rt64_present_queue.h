@@ -9,6 +9,7 @@
 #include "render/rt64_vi_renderer.h"
 
 #include "rt64_application_window.h"
+#include "rt64_librashader.h"
 #include "rt64_present.h"
 #include "rt64_shared_queue_resources.h"
 
@@ -48,7 +49,11 @@ namespace RT64 {
         FramebufferChangePool scratchFbChangePool;
         FramebufferChangePool screenFbChangePool;
         std::atomic<bool> viewRDRAM = false;
+        std::string desiredShader;
+        std::unique_ptr<Librashader> librafx;
         std::vector<std::unique_ptr<RenderFramebuffer>> swapChainFramebuffers;
+        std::unique_ptr<RenderFramebuffer> intermediateFramebuffer{};
+        std::unique_ptr<RenderTexture> intermediateTexture{};
         std::unique_ptr<RenderCommandSemaphore> acquiredSemaphore;
         std::unique_ptr<RenderCommandSemaphore> drawSemaphore;
         std::unique_ptr<VIRenderer> viRenderer;

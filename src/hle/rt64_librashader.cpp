@@ -147,10 +147,16 @@ namespace RT64 {
         // todo: error checks for preset create and get runtime params
         //libra.preset_print(&preset);
 
+        if (err)
+            return false;
+
         // Build out parameter vector
         currentRuntimeParams.clear();
         libra_preset_param_list_t preset_parameters;
         err = libra.preset_get_runtime_params(&preset, &preset_parameters);
+
+        if (err)
+            return false;
 
         for (int i = 0; i < preset_parameters.length; i++) {
             libra_preset_param_t param = preset_parameters.parameters[i];
@@ -186,11 +192,11 @@ namespace RT64 {
         auto* interfaceDevice = static_cast<plume::VulkanDevice*>(device);
 
         const libra_device_vk_t vkLibraDevice = {
-            .physical_device = nullptr,
+            .physical_device = interfaceDevice->physicalDevice,
             .instance = interfaceDevice->renderInterface->instance,
             .device = interfaceDevice->vk,
-            .queue = nullptr,
-            .entry = nullptr
+            .queue = nullptr, // todo: specify?
+            .entry = vkGetInstanceProcAddr
         };
 
         const filter_chain_vk_opt_t vkFilterChainOpts = {

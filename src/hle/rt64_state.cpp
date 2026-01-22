@@ -2195,6 +2195,23 @@ namespace RT64 {
                     ImGui::EndTabItem();
                 }
 
+                if (ImGui::BeginTabItem("FX")) {
+                    const bool shaderLoad = ImGui::Button("Load Shader");
+
+                    if (shaderLoad) {
+                        std::filesystem::path requestedPath = FileDialog::getOpenFilename({ FileFilter("SLANGP Presets", "slangp") });
+                        if (!requestedPath.empty()) {
+                            ext.presentQueue->desiredShader = requestedPath;
+                        }
+                    }
+
+                    if (!ext.presentQueue->librafx.get()->getCurrentShader().empty()) {
+                        ImGui::Text("Current Parameters:");
+                    }
+
+                    ImGui::EndTabItem();
+                }
+
                 if (ImGui::BeginTabItem("Textures")) {
                     for (const ReplacementDirectory &replacementDirectory : ext.textureCache->textureMap.replacementMap.replacementDirectories) {
                         const std::string replacementPath = replacementDirectory.dirOrZipPath.u8string();

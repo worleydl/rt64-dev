@@ -280,7 +280,7 @@ namespace RT64 {
             intermediateFramebuffer = ext.device->createFramebuffer(RenderFramebufferDesc(&localIntermediateTexture, 1));
         }
 
-        // Check if we need to (re)load the shader
+        // Check if we need to update the shader
         if (desiredShader != librafx.get()->getCurrentShader()) {
             if (desiredShader.empty())
                 librafx.get()->reset();
@@ -327,11 +327,12 @@ namespace RT64 {
 
             if (presentFrame && swapChainValid) {
                 // Draw the framebuffer with the VI renderer.
+                bool libraReady = librafx.get()->ready();
+                RenderTexture* localIntermediateTexture = intermediateTexture.get();
                 RenderTexture *swapChainTexture = ext.swapChain->getTexture(swapChainIndex);
+                RenderFramebuffer* localIntermediateFramebuffer = intermediateFramebuffer.get();
                 RenderFramebuffer *swapChainFramebuffer = swapChainFramebuffers[swapChainIndex].get();
                 RenderCommandList *commandList = ext.presentGraphicsWorker->commandList.get();
-                commandList->begin();
-                commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE));
                 
                 VIRenderer::RenderParams renderParams;
                 if (colorTarget != nullptr) {
@@ -361,13 +362,38 @@ namespace RT64 {
                         renderParams.textureHeight = colorTarget->height;
                     }
                 }
+
+                commandList->begin();
+                if (libraReady && renderParams.texture != nullptr) {
+                    commandList->barriers(
+                        RenderBarrierStage::GRAPHICS,
+                        RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::COLOR_WRITE)
+                    );
+                    commandList->setFramebuffer(localIntermediateFramebuffer);
+                } else {
+                    commandList->barriers(
+                        RenderBarrierStage::GRAPHICS,
+                        RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE)
+                    );
+                    commandList->setFramebuffer(swapChainFramebuffer);
+                }
                 
-                commandList->setFramebuffer(swapChainFramebuffer);
                 commandList->clearColor();
 
                 if (renderParams.texture != nullptr) {
                     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(renderParams.texture, RenderTextureLayout::SHADER_READ));
                     viRenderer->render(renderParams);
+
+                    if (libraReady) {
+                        Librashader::LibraFrameParams frameparams;
+                        frameparams.commandList = commandList;
+                        frameparams.frameCount = frameCounters.presented;
+                        frameparams.intermediateTexture = localIntermediateTexture;
+                        frameparams.swapchainTexture = swapChainTexture;
+                        frameparams.swapchainFramebuffer = swapChainFramebuffer;
+                        frameparams.worker = ext.presentGraphicsWorker;
+                        librafx.get()->postprocess(frameparams); // barriers/framebuffer mgmt inside
+                    }
                 }
 
                 RenderHookDraw *drawHook = GetRenderHookDraw();

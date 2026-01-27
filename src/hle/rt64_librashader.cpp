@@ -17,6 +17,7 @@
 
 // todo: metal
 
+#include "librashader.h"
 #include "librashader_ld.h"
 
 namespace RT64 {
@@ -108,7 +109,9 @@ namespace RT64 {
 
         libra_image_vk_t output = {
             .handle = vkOutput->vk,
-            .format = vkOutput->imageFormat,
+            // todo: why is swapchain texture format being lost?
+            // .format = vkOutput->imageFormat,
+            .format = vkInput->imageFormat, // hack: reuse input format
             .width = vkOutput->desc.width,
             .height = vkOutput->desc.height
         };
@@ -160,15 +163,14 @@ namespace RT64 {
 
         for (int i = 0; i < preset_parameters.length; i++) {
             libra_preset_param_t param = preset_parameters.parameters[i];
-            currentRuntimeParams.push_back({
+            currentRuntimeParams.emplace_back(
                 param.name,
                 param.description,
-                param.initial, // keep track of this in case we want to reset to defaults
+                param.initial,
                 param.minimum,
                 param.maximum,
-                param.step,
-                param.initial // current_value = initial during init
-            });
+                param.step
+            );
         }
         libra.preset_free_runtime_params(preset_parameters);
 
@@ -203,7 +205,7 @@ namespace RT64 {
             .version = LIBRASHADER_CURRENT_VERSION,
             .frames_in_flight = 0,
             .force_no_mipmaps = false,
-            .use_dynamic_rendering = true,
+            .use_dynamic_rendering = false, // recommended to enable but requires 1.3 ext
             .disable_cache = false
         };
 

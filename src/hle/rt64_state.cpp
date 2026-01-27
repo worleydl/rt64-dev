@@ -2206,7 +2206,10 @@ namespace RT64 {
                     }
 
                     if (!ext.presentQueue->librafx.get()->getCurrentShader().empty()) {
-                        ImGui::Text("Current Parameters:");
+                        ImGui::Text("Current Parameters: ");
+                        ImGui::SameLine();
+                        ImGui::Text(ext.presentQueue->librafx.get()->getCurrentShader().c_str());
+                        ImGui::NewLine();
 
                         for (auto& param : ext.presentQueue->librafx.get()->getRuntimeParams()) {
                             ImGui::Text(param.description.c_str());

@@ -47,7 +47,7 @@ namespace RT64 {
         Librashader();
         ~Librashader();
         std::string getCurrentShader();
-        std::vector<LibraRuntimeParam> getRuntimeParams();
+        std::vector<LibraRuntimeParam>& getRuntimeParams();
         void updateRuntimeParam(const LibraRuntimeParam param);
         bool ready();
         void reset();

@@ -2207,6 +2207,25 @@ namespace RT64 {
 
                     if (!ext.presentQueue->librafx.get()->getCurrentShader().empty()) {
                         ImGui::Text("Current Parameters:");
+
+                        for (auto& param : ext.presentQueue->librafx.get()->getRuntimeParams()) {
+                            ImGui::Text(param.description.c_str());
+
+                            if (ImGui::SliderFloat(param.name.c_str(), &param.current_value, param.min, param.max)) {
+                                ext.presentQueue->librafx.get()->updateRuntimeParam(param);
+                            }
+                        }
+
+                        ImGui::NewLine();
+                        ImGui::NewLine();
+
+                        if (ImGui::Button("Apply Defaults")) {
+                            for (auto& param : ext.presentQueue->librafx.get()->getRuntimeParams()) {
+                                param.current_value = param.initial;
+                                ext.presentQueue->librafx.get()->updateRuntimeParam(param);
+                            }
+                        }
+
                     }
 
                     ImGui::EndTabItem();

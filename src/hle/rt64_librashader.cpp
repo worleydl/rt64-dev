@@ -6,10 +6,10 @@
 librashader feature dev:
 
 TODO/ISSUES:
-- Occasional access violation on close when fx are active
 - Metal support is missing
 - Need to support dx/vulkan in same build by checking current config instead of preproc only
 - Preprocessor cleanup for non-librashader builds
+- Basic scanlines don't work? Only res independent seems to kick in
 */
 
 #include "rt64_librashader.h"
@@ -57,7 +57,7 @@ namespace RT64 {
         return currentShaderPath;
     }
 
-    std::vector<LibraRuntimeParam> Librashader::getRuntimeParams() {
+    std::vector<LibraRuntimeParam>& Librashader::getRuntimeParams() {
         return currentRuntimeParams;
     }
 

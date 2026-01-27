@@ -388,7 +388,7 @@ namespace RT64 {
                     if (libraReady) {
                         Librashader::LibraFrameParams frameparams;
                         frameparams.commandList = commandList;
-                        frameparams.frameCount = frameCounters.presented;
+                        frameparams.frameCount = frameCounters.count;
                         frameparams.intermediateTexture = localIntermediateTexture;
                         frameparams.swapchainTexture = swapChainTexture;
                         frameparams.swapchainFramebuffer = swapChainFramebuffer;

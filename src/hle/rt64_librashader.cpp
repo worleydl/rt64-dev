@@ -81,6 +81,10 @@ namespace RT64 {
         lp.commandList->setFramebuffer(lp.swapchainFramebuffer);
         lp.commandList->clearColor();
 
+#ifdef LIBRA_RUNTIME_VULKAN
+        lp.commandList->end();
+#endif
+
         // librashader hookup
 
         // todo: Needs to work more like inspector, check active config
@@ -116,12 +120,13 @@ namespace RT64 {
 
         libra_image_vk_t output = {
             .handle = vkOutput->vk,
-            // todo: why is swapchain texture format being lost?
-            // .format = vkOutput->imageFormat,
-            .format = vkInput->imageFormat, // hack: reuse input format
+            // todo: why is swapchain texture format being lost? reusing vkinput for now
+            .format = vkInput->imageFormat,
             .width = vkOutput->desc.width,
             .height = vkOutput->desc.height
         };
+
+        lp.commandList->begin();
 
         libra_error_t frameErr = libra.vk_filter_chain_frame(&vk_filterChain, vkCmdList, lp.frameCount,
                                                                 input, output, NULL, NULL, NULL);

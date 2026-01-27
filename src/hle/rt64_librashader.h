@@ -17,7 +17,6 @@ namespace RT64 {
         float max;
         float step;
         float current_value;
-        bool dirty;
 
         LibraRuntimeParam(std::string n, std::string d, float def, float min_, float max_, float step_)
             : name(std::move(n)),
@@ -25,8 +24,7 @@ namespace RT64 {
             initial(def),
             min(min_), max(max_),
             step(step_),
-            current_value(def),
-            dirty(false) {}
+            current_value(def) {}
     };
 
     struct Librashader {
@@ -37,11 +35,6 @@ namespace RT64 {
             RenderTexture *swapchainTexture = nullptr;
             RenderWorker *worker = nullptr;
             size_t frameCount;
-        };
-
-        struct LibraRuntimeState {
-            std::vector<LibraRuntimeParam> params;
-            bool dirty;
         };
 
         Librashader();

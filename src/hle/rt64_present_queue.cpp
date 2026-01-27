@@ -128,7 +128,7 @@ namespace RT64 {
         // interpolated frames. When the framebuffer manager or the render target manager maps are
         // modified while the present queue is retrieving the framebuffer or the target. These can
         // likely be solved by locking the access to the managers during modification.
-        
+
         // Perform any external write operations indicated by the event.
         if (!present.fbOperations.empty()) {
             const std::scoped_lock lock(screenFbChangePoolMutex);
@@ -149,7 +149,7 @@ namespace RT64 {
             }
 
             Framebuffer *presentFb = viFb;
-            
+
             // Show the framebuffer the debugger has requested instead.
             if (present.debuggerFramebuffer.view) {
                 Framebuffer *candidateFb = fbManager.find(present.debuggerFramebuffer.address);
@@ -157,7 +157,7 @@ namespace RT64 {
                     presentFb = candidateFb;
                 }
             }
-            
+
             if ((presentFb != nullptr) && (viFb != nullptr)) {
                 for (uint32_t colorAddress : ext.sharedResources->colorImageAddressVector) {
                     Framebuffer *colorFb = fbManager.find(colorAddress);
@@ -167,7 +167,7 @@ namespace RT64 {
 
                     // Always default to interpolation being disabled for all modified framebuffers.
                     colorFb->interpolationEnabled = false;
-                    
+
                     // When the skip buffering option is on, we check the video history to find if any of the framebuffers that
                     // were drawn in this frame have been previously used for presentation. This is ignored when the debugger
                     // has forced viewing a particular framebuffer.
@@ -287,7 +287,7 @@ namespace RT64 {
             else
                 librafx.get()->setup(ext.device, desiredShader);
         }
-        
+
         for (int32_t i = 0; i < framesToPresent; i++) {
             uint32_t frameCountersNextPresented = 0;
             if ((framesToPresent > 1) && (usingMSAA || (i > 0))) {
@@ -333,7 +333,19 @@ namespace RT64 {
                 RenderFramebuffer* localIntermediateFramebuffer = intermediateFramebuffer.get();
                 RenderFramebuffer *swapChainFramebuffer = swapChainFramebuffers[swapChainIndex].get();
                 RenderCommandList *commandList = ext.presentGraphicsWorker->commandList.get();
-                
+                commandList->begin();
+                if (libraReady) {
+                    commandList->barriers(
+                        RenderBarrierStage::GRAPHICS,
+                        RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::COLOR_WRITE)
+                    );
+                } else {
+                    commandList->barriers(
+                        RenderBarrierStage::GRAPHICS,
+                        RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE)
+                    );
+                }
+
                 VIRenderer::RenderParams renderParams;
                 if (colorTarget != nullptr) {
                     renderParams.device = ext.device;
@@ -363,21 +375,11 @@ namespace RT64 {
                     }
                 }
 
-                commandList->begin();
                 if (libraReady && renderParams.texture != nullptr) {
-                    commandList->barriers(
-                        RenderBarrierStage::GRAPHICS,
-                        RenderTextureBarrier(localIntermediateTexture, RenderTextureLayout::COLOR_WRITE)
-                    );
                     commandList->setFramebuffer(localIntermediateFramebuffer);
                 } else {
-                    commandList->barriers(
-                        RenderBarrierStage::GRAPHICS,
-                        RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE)
-                    );
                     commandList->setFramebuffer(swapChainFramebuffer);
                 }
-                
                 commandList->clearColor();
 
                 if (renderParams.texture != nullptr) {
@@ -406,7 +408,7 @@ namespace RT64 {
                     if (inspector != nullptr) {
                         inspector->draw(commandList);
                     }
-                    
+
                     commandList->barriers(RenderBarrierStage::NONE, RenderTextureBarrier(swapChainTexture, RenderTextureLayout::PRESENT));
                     commandList->end();
                     const RenderCommandList *commandList = ext.presentGraphicsWorker->commandList.get();
@@ -421,7 +423,7 @@ namespace RT64 {
                 ext.sharedResources->workloadMutex.unlock();
                 lockedWorkloadMutex = false;
             }
-            
+
             if (frameCountersNextPresented > 0) {
                 {
                     std::unique_lock<std::mutex> interpolatedLock(ext.sharedResources->interpolatedMutex);
@@ -492,7 +494,7 @@ namespace RT64 {
 
         return true;
     }
-    
+
     void PresentQueue::threadAdvanceBarrier() {
         std::scoped_lock<std::mutex> cursorLock(cursorMutex);
         barrierCursor = (barrierCursor + 1) % presents.size();

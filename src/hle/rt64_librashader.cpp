@@ -6,14 +6,13 @@
 
 #include <vector>
 
-
 #ifdef _WIN32
 #include "plume_d3d12.h"
 #define LIBRA_RUNTIME_D3D12 1
 #endif
 
 #include "plume_vulkan.h"
-#define LIBRA_RUNTIME_VULKAN 1
+//#define LIBRA_RUNTIME_VULKAN 1
 
 // todo: metal
 
@@ -53,10 +52,17 @@ namespace RT64 {
     }
 
     void Librashader::updateRuntimeParam(LibraRuntimeParam parameter) {
-        // todo: api specific routing
+#if LIBRA_RUNTIME_D3D12
+        if (dx_filterChain) {
+            libra.d3d12_filter_chain_set_param(&dx_filterChain, parameter.name.c_str(), parameter.current_value);
+        }
+#endif
+
+#if LIBRA_RUNTIME_VULKAN
         if (vk_filterChain) {
             libra.vk_filter_chain_set_param(&vk_filterChain, parameter.name.c_str(), parameter.current_value);
         }
+#endif
     }
 
     void Librashader::postprocess(const Librashader::LibraFrameParams &lp) {
@@ -77,8 +83,8 @@ namespace RT64 {
 
         // librashader hookup
 
-        // todo: bring back dx
-        /*
+        // todo: Needs to work more like inspector, check active config
+#if LIBRA_RUNTIME_D3D12
         auto* d3d12CmdList = static_cast<plume::D3D12CommandList*>(lp.commandList)->d3d;
         auto* d3d12Input = static_cast<plume::D3D12Texture*>(lp.intermediateTexture)->d3d;
         auto* d3d12Output = static_cast<plume::D3D12Texture*>(lp.swapchainTexture)->d3d;
@@ -94,8 +100,9 @@ namespace RT64 {
 
         libra_error_t frameErr = libra.d3d12_filter_chain_frame(&dx_filterChain, d3d12CmdList, lp.frameCount,
             input, output, NULL, NULL, NULL);
-      */
+#endif
 
+#if LIBRA_RUNTIME_VULKAN
         auto* vkCmdList = static_cast<plume::VulkanCommandList*>(lp.commandList)->vk;
         auto* vkInput = static_cast<plume::VulkanTexture*>(lp.intermediateTexture);
         auto* vkOutput = static_cast<plume::VulkanTexture*>(lp.swapchainTexture);
@@ -118,22 +125,30 @@ namespace RT64 {
 
         libra_error_t frameErr = libra.vk_filter_chain_frame(&vk_filterChain, vkCmdList, lp.frameCount,
                                                                 input, output, NULL, NULL, NULL);
+#endif
     }
 
     bool Librashader::ready() {
+        // todo: Check config and check appropriate filterchain
+#ifdef LIBRA_RUNTIME_D3D12
+        return dx_filterChain;
+#elif LIBRA_RUNTIME_VULKAN
         return vk_filterChain; 
+#endif // todo: metal
     }
 
     void Librashader::reset() {
-        /*
+#ifdef LIBRA_RUNTIME_D3D12
         if (dx_filterChain) {
             libra.d3d12_filter_chain_free(&dx_filterChain);
         }
-        */
+#endif
 
+#ifdef LIBRA_RUNTIME_VULKAN
         if (vk_filterChain) {
             libra.vk_filter_chain_free(&vk_filterChain);
         }
+#endif
 
         if (preset) {
             libra.preset_free(&preset);
@@ -174,23 +189,20 @@ namespace RT64 {
         }
         libra.preset_free_runtime_params(preset_parameters);
 
-// todo: dx/metal
-/*
+#ifdef LIBRA_RUNTIME_D3D12
         auto* d3d12Device = static_cast<plume::D3D12Device*>(device);
 
         const filter_chain_d3d12_opt_t filterOptions = {
             LIBRASHADER_CURRENT_VERSION,
             false, // Force use of hlsl
             false, // Force disable mipmaps
-            true   // Disable cache for UWP, it blows up the driver
+            false  // Disable cache
         };
 
         err = libra.d3d12_filter_chain_create(&preset, d3d12Device->d3d,
                                                             &filterOptions,
-                                                            &filterChain);
-*/
-
-
+                                                            &dx_filterChain);
+#elif LIBRA_RUNTIME_VULKAN
         auto* interfaceDevice = static_cast<plume::VulkanDevice*>(device);
 
         const libra_device_vk_t vkLibraDevice = {
@@ -210,6 +222,7 @@ namespace RT64 {
         };
 
         err = libra.vk_filter_chain_create(&preset, vkLibraDevice, &vkFilterChainOpts, &vk_filterChain);
+#endif // todo: metal
 
         if (!err)
             currentShaderPath = path;

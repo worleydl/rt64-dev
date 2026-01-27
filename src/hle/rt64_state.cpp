@@ -138,7 +138,7 @@ namespace RT64 {
         // Mark everything as changed so everything on the draw call gets updated.
         drawStatus.changed = (1U << static_cast<uint32_t>(DrawAttribute::Count)) - 1;
     }
-    
+
     void State::updateDrawStatusAttribute(DrawAttribute attribute) {
         drawStatus.setChanged(attribute);
     }
@@ -215,7 +215,7 @@ namespace RT64 {
             drawCall.scissorLeftOrigin = rdp->extended.scissorLeftOrigin;
             drawCall.scissorRightOrigin = rdp->extended.scissorRightOrigin;
         }
-        
+
         if (drawStatus.isChanged(DrawAttribute::Texture) || textureCheck) {
             // Detect the tile count based on the LOD setting.
             const bool usesLOD = (drawCall.otherMode.textLOD() == G_TL_LOD);
@@ -249,7 +249,7 @@ namespace RT64 {
                     drawData.rdpTiles.resize(requiredSize, { });
                     drawData.callTiles.resize(requiredSize, { });
                 }
-                
+
                 const uint8_t tileIndexBase = drawCall.textureTile;
                 for (uint32_t t = 0; t < drawCall.tileCount; t++) {
                     const uint8_t tileIndex = (tileIndexBase + t) % RDP_TILES;
@@ -291,7 +291,7 @@ namespace RT64 {
                     // Check if we need to use raw TMEM decoding because the tile can sample more bytes than TMEM actually allows.
                     assert((dstCallTile.sampleWidth > 0) && (dstCallTile.sampleHeight > 0) && "Sample size calculation can only result in non-zero values.");
                     dstCallTile.rawTMEM = TMEMHasher::requiresRawTMEM(tile, dstCallTile.sampleWidth, dstCallTile.sampleHeight);
-                    
+
                     auto &dstRDPTile = drawData.rdpTiles[drawCall.tileIndex + t];
                     dstRDPTile.fmt = tile.fmt;
                     dstRDPTile.siz = tile.siz;
@@ -335,8 +335,8 @@ namespace RT64 {
                     if ((tile.maskt > 0) && (tile.cmt & G_TX_CLAMP)) {
                         nativeSamplerSupported = nativeSamplerSupported && clampAlignedToMask(tile.maskt, tile.ult, tile.lrt);
                     }
-                    
-                    // Check if there's any valid tile copies that could be used. The line width requirement has to match for 
+
+                    // Check if there's any valid tile copies that could be used. The line width requirement has to match for
                     // the tile copy to make sense, but whether enough pixels are available in the copy according to the sampling
                     // done by the calls is determined in a later step.
                     FramebufferManager::CheckCopyResult checkResult;
@@ -406,7 +406,7 @@ namespace RT64 {
                     }
                 }
             }
-            
+
             // Increase the load operation count.
             size_t loadOperationTotal = workload.drawData.loadOperations.size();
             drawCall.loadCount += uint32_t(loadOperationTotal - workload.drawRanges.loadOperations.second);
@@ -476,7 +476,7 @@ namespace RT64 {
 
             proj.lightManager.processAmbientLight(this, rsp->lightCount);
         }
-        
+
         // Handle extended type behavior during recording.
         switch (drawCall.extendedType) {
         case DrawExtendedType::VertexTestZ:
@@ -492,7 +492,7 @@ namespace RT64 {
 
             break;
         };
-        
+
         // Reset attributes for the next draw call to be recorded.
         drawCall.rectDsdx = 0;
         drawCall.rectDtdy = 0;
@@ -502,7 +502,7 @@ namespace RT64 {
         drawCall.maxWorldMatrix = 0;
         drawCall.triangleCount = 0;
     }
-    
+
     void State::submitFramebufferPair(FramebufferPair::FlushReason flushReason) {
         const int workloadCursor = ext.workloadQueue->writeCursor;
         Workload &workload = ext.workloadQueue->workloads[workloadCursor];
@@ -511,7 +511,7 @@ namespace RT64 {
         if (workload.fbPairCount <= workload.fbPairSubmitted) {
             return;
         }
-        
+
         const int fbPairIndex = workload.currentFramebufferPairIndex();
         FramebufferPair &fbPair = workload.fbPairs[fbPairIndex];
         fbPair.flushReason = flushReason;
@@ -587,12 +587,12 @@ namespace RT64 {
         // Increase the submitted framebuffer counter.
         workload.fbPairSubmitted++;
     }
-    
+
     void State::checkRDRAM() {
         if (!rdramCheckPending) {
             return;
         }
-        
+
         assert(drawFbOperations.empty() && "There should be no pending framebuffer operations when this is started.");
         assert(drawFbDiscards.empty() && "There should be no pending framebuffer discards when this is started.");
 
@@ -752,7 +752,7 @@ namespace RT64 {
             }
         }
     }
-    
+
     void State::fullSync() {
         flush();
         submitFramebufferPair(FramebufferPair::FlushReason::ProcessDisplayListsEnd);
@@ -769,7 +769,7 @@ namespace RT64 {
             FramebufferPair &lastFbPair = workload.fbPairs[workload.fbPairCount - 1];
             flushFramebufferOperations(lastFbPair);
         }
-        
+
         // Copy the current state's extended parameters into the workload.
         workload.extended.ditherNoiseStrength = extended.ditherNoiseStrength;
 
@@ -947,7 +947,7 @@ namespace RT64 {
 #               ifdef ASSERT_ON_BLENDER_EMULATION
                     assert(blenderEmuReqs.simpleEmulation || (blenderEmuReqs.approximateEmulation != interop::Blender::Approximation::None));
 #               endif
-                    
+
                     if (warningsEnabled && !blenderEmuReqs.simpleEmulation && (blenderEmuReqs.approximateEmulation == interop::Blender::Approximation::None)) {
                         CommandWarning warning = CommandWarning::format("Unable to provide a fast rendering path for blender with non-standard behavior. The render mode might not be intentional.");
                         warning.indexType = CommandWarning::IndexType::CallIndex;
@@ -956,7 +956,7 @@ namespace RT64 {
                         warning.call.callIndex = d;
                         workload.commandWarnings.emplace_back(warning);
                     }
-                    
+
                     // Describe the shader.
                     const bool forceLinearFiltering = (callDesc.extendedFlags.forceTrueBilerp == G_EX_BILERP_ALL) || ((callDesc.extendedFlags.forceTrueBilerp == G_EX_BILERP_ONLY) && (callDesc.otherMode.textFilt() == G_TF_BILERP));
                     const bool oneCycleHardwareBug = (callDesc.otherMode.cycleType() == G_CYC_1CYCLE);
@@ -972,7 +972,7 @@ namespace RT64 {
                     // Set whether the LOD should be scaled to the display resolution according to the configuration mode and the extended GBI flags.
                     const bool usesLOD = (callDesc.otherMode.textLOD() == G_TL_LOD);
                     flags.upscaleLOD = usesLOD && (scaleLOD || callDesc.extendedFlags.forceScaleLOD);
-                    
+
                     // Set whether the texture coordinates should be scaled or not based on the current configuration mode and the extended GBI flags.
                     const bool forcedUpscale2D = (flags.rect == 0) || (upscale2D == UserConfiguration::Upscale2D::All) || callDesc.extendedFlags.forceUpscale2D;
                     const bool upscaleIfScaledRect = (upscale2D == UserConfiguration::Upscale2D::ScaledOnly) && flags.rect && !callDesc.identityRectScale();
@@ -1013,9 +1013,9 @@ namespace RT64 {
                             bool sameModes = true;
                             for (uint32_t t = 1; (t < callDesc.tileCount) && sameModes; t++) {
                                 const interop::RDPTile &tileLevel = rdpTiles[callDesc.tileIndex + t];
-                                sameModes = 
-                                    (tileLevel.cms == tile0.cms) && 
-                                    (tileLevel.cmt == tile0.cmt) && 
+                                sameModes =
+                                    (tileLevel.cms == tile0.cms) &&
+                                    (tileLevel.cmt == tile0.cmt) &&
                                     (tileLevel.fmt == tile0.fmt) &&
                                     (tileLevel.siz == tile0.siz);
                             }
@@ -1738,7 +1738,7 @@ namespace RT64 {
 #endif
             }
         }
-        
+
         // Advance the workload queue at the end of a full synchronization.
         advanceWorkload(workload, false);
         ext.workloadQueue->advanceToNextWorkload();
@@ -1746,13 +1746,13 @@ namespace RT64 {
         // Make sure the profiler starts after the workload is advanced to ignore any waiting time.
         dlCpuProfiler.reset();
         dlCpuProfiler.start();
-        
+
         // Submit a presentation event instantly if applicable.
         const bool presentEarly = !ext.presentQueue->viewRDRAM && (ext.enhancementConfig->presentation.mode == EnhancementConfiguration::Presentation::Mode::PresentEarly);
         if (presentEarly && (workload.fbPairCount > 0)) {
             thread_local std::unordered_set<uint32_t> colorImageAddressSet;
             colorImageAddressSet.clear();
-            
+
             bool viPresented = false;
             for (int32_t f = workload.fbPairCount - 1; (f >= 0) && !viPresented; f--) {
                 const FramebufferPair &fbPair = workload.fbPairs[f];
@@ -1799,14 +1799,14 @@ namespace RT64 {
         disableExtendedGBI();
         clearExtended();
     }
-    
+
     void State::updateScreen(const VI &newVI, bool fromEarlyPresent) {
         // If the debugger has paused the plugin, keep submitting the last workload and screen VI for rendering and a present event.
         if (debuggerInspector.paused && !fromEarlyPresent) {
             if (ext.userConfig->developerMode) {
                 inspect();
             }
-            
+
             // Wait for the workload and present that has been submitted already to be processed.
             ext.workloadQueue->waitForWorkloadId(workloadId);
             ext.presentQueue->waitForPresentId(presentId);
@@ -1825,7 +1825,7 @@ namespace RT64 {
                 return;
             }
         }
-        
+
         const int presentCursor = ext.presentQueue->writeCursor;
         Present &present = ext.presentQueue->presents[presentCursor];
         present.fbOperations.clear();
@@ -1863,7 +1863,7 @@ namespace RT64 {
         bool fbChangesMade = false;
         bool screenChangesMade = false;
         if (newVI.visible()) {
-            // See if there's an existing framebuffer that lines up with the VI. If there is, we support reading 
+            // See if there's an existing framebuffer that lines up with the VI. If there is, we support reading
             // CPU changes directly to it and recreating them in the render thread at low resolution.
             RenderWorker *worker = ext.framebufferGraphicsWorker;
             Framebuffer *screenFb = framebufferManager.find(screenFbAddress);
@@ -1911,7 +1911,7 @@ namespace RT64 {
                 lastScreenHash = newScreenHash;
             }
         }
-        
+
         // We only push a new present event to the timeline when it's necessary.
         if (fromEarlyPresent || viDifferent || fbChangesMade || screenChangesMade) {
             // Push a new renderer event to the timeline for presenting this VI.
@@ -2024,7 +2024,7 @@ namespace RT64 {
         //appData.m_cursorRayDirection = Im3d::Vec3(rayDir.x, rayDir.y, rayDir.z);
         //appData.m_keyDown[Im3d::Mouse_Left] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
         */
-        
+
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !ImGui::GetIO().WantCaptureMouse) {
             // We need to figure out the dimensions of where the viewport is being rendered at first.
             ext.sharedQueueResources->configurationMutex.lock();
@@ -2073,9 +2073,9 @@ namespace RT64 {
                     if (manualResolution) {
                         resConfigChanged = ImGui::InputDouble("Resolution Multiplier", &userConfig.resolutionMultiplier) || resConfigChanged;
                     }
-                    
+
                     genConfigChanged = ImGui::InputInt("Downsample Multiplier", &userConfig.downsampleMultiplier) || genConfigChanged;
-                    
+
                     ImGui::BeginDisabled(!ext.device->getCapabilities().sampleLocations);
                     const bool usesHDR = ext.shaderLibrary->usesHDR;
                     const RenderSampleCounts sampleCountsSupported = ext.device->getSampleCountsSupported(RenderTarget::colorBufferFormat(usesHDR)) & ext.device->getSampleCountsSupported(RenderTarget::depthBufferFormat());
@@ -2143,7 +2143,7 @@ namespace RT64 {
 
                     genConfigChanged = ImGui::Checkbox("Three-Point Filtering", &userConfig.threePointFiltering) || genConfigChanged;
                     genConfigChanged = ImGui::Checkbox("High Performance State", &userConfig.idleWorkActive) || genConfigChanged;
-                    
+
                     // Emulator configuration.
                     ImGui::NewLine();
                     ImGui::Separator();
@@ -2201,7 +2201,7 @@ namespace RT64 {
                     if (shaderLoad) {
                         std::filesystem::path requestedPath = FileDialog::getOpenFilename({ FileFilter("SLANGP Presets", "slangp") });
                         if (!requestedPath.empty()) {
-                            ext.presentQueue->desiredShader = requestedPath;
+                            ext.presentQueue->desiredShader = requestedPath.string();
                         }
                     }
 
@@ -2400,7 +2400,7 @@ namespace RT64 {
 
                     ImGui::EndTabItem();
                 }
-                
+
                 if (ImGui::BeginTabItem("Render")) {
                     if (ImPlot::BeginPlot("Frametimes")) {
                         const double FrametimeLimit = 20.0;
@@ -2426,7 +2426,7 @@ namespace RT64 {
                         ImPlot::PlotLine<double>("Update Screen (VI Changed)", viChangedProfiler.data(), static_cast<int>(viChangedProfiler.size()), 1.0, 0.0, ImPlotLineFlags_None, viChangedProfiler.index(), Stride);
                         ImPlot::PlotLine<double>("Update Screen (CPU)", screenCpuProfiler.data(), static_cast<int>(screenCpuProfiler.size()), 1.0, 0.0, ImPlotLineFlags_None, screenCpuProfiler.index(), Stride);
                         ImPlot::EndPlot();
-                        
+
                         const double averagePresent = presentProfiler.average();
                         const double averageRendererCPU = rendererCPUProfiler.average();
                         const double averageRendererGPU = rendererGPUProfiler.average();
@@ -2709,7 +2709,7 @@ namespace RT64 {
     void State::setDitherNoiseStrength(float noiseStrength) {
         extended.ditherNoiseStrength = noiseStrength;
     }
-    
+
     void State::setExtendedRDRAM(bool isExtended) {
         extended.extendRDRAM = isExtended;
     }

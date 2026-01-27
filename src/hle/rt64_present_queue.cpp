@@ -22,10 +22,9 @@ namespace RT64 {
         presentThreadRunning = false;
         cursorCondition.notify_all();
 
-        librafx.get()->reset();
-
         if (presentThread != nullptr) {
             presentThread->join();
+            librafx.get()->reset();
             delete presentThread;
         }
 

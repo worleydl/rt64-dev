@@ -2,6 +2,16 @@
 // RT64
 //
 
+/*
+librashader feature dev:
+
+TODO/ISSUES:
+- Occasional access violation on close when fx are active
+- Metal support is missing
+- Need to support dx/vulkan in same build by checking current config instead of preproc only
+- Preprocessor cleanup for non-librashader builds
+*/
+
 #include "rt64_librashader.h"
 
 #include <vector>
@@ -82,6 +92,7 @@ namespace RT64 {
         lp.commandList->clearColor();
 
 #ifdef LIBRA_RUNTIME_VULKAN
+        // Vulkan seems to explode without a "fresh" commandlist with nothing done to it
         lp.commandList->end();
 #endif
 
@@ -104,6 +115,9 @@ namespace RT64 {
 
         libra_error_t frameErr = libra.d3d12_filter_chain_frame(&dx_filterChain, d3d12CmdList, lp.frameCount,
             input, output, NULL, NULL, NULL);
+
+        // D3D12 needs an extra reminder or imgui gets hidden by fx
+        lp.commandList->setFramebuffer(lp.swapchainFramebuffer);
 #endif
 
 #if LIBRA_RUNTIME_VULKAN

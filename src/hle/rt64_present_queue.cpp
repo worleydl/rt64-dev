@@ -389,9 +389,9 @@ namespace RT64 {
                         Librashader::LibraFrameParams frameparams;
                         frameparams.commandList = commandList;
                         frameparams.frameCount = frameCounters.count;
-                        frameparams.intermediateTexture = localIntermediateTexture;
-                        frameparams.swapchainTexture = swapChainTexture;
-                        frameparams.swapchainFramebuffer = swapChainFramebuffer;
+                        frameparams.inputTexture = localIntermediateTexture;
+                        frameparams.outputTexture = swapChainTexture;
+                        frameparams.outputFramebuffer = swapChainFramebuffer;
                         frameparams.worker = ext.presentGraphicsWorker;
                         librafx.get()->postprocess(frameparams); // barriers/framebuffer mgmt inside
                     }

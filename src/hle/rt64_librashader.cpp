@@ -86,9 +86,9 @@ namespace RT64 {
         // new list for menu to avoid libra corruption
         lp.commandList->begin();
 
-        lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.intermediateTexture, RenderTextureLayout::SHADER_READ));
-        lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.swapchainTexture, RenderTextureLayout::COLOR_WRITE));
-        lp.commandList->setFramebuffer(lp.swapchainFramebuffer);
+        lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.inputTexture, RenderTextureLayout::SHADER_READ));
+        lp.commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(lp.outputTexture, RenderTextureLayout::COLOR_WRITE));
+        lp.commandList->setFramebuffer(lp.outputFramebuffer);
         lp.commandList->clearColor();
 
 #ifdef LIBRA_RUNTIME_VULKAN
@@ -101,8 +101,8 @@ namespace RT64 {
         // todo: Needs to work more like inspector, check active config
 #if LIBRA_RUNTIME_D3D12
         auto* d3d12CmdList = static_cast<plume::D3D12CommandList*>(lp.commandList)->d3d;
-        auto* d3d12Input = static_cast<plume::D3D12Texture*>(lp.intermediateTexture)->d3d;
-        auto* d3d12Output = static_cast<plume::D3D12Texture*>(lp.swapchainTexture)->d3d;
+        auto* d3d12Input = static_cast<plume::D3D12Texture*>(lp.inputTexture)->d3d;
+        auto* d3d12Output = static_cast<plume::D3D12Texture*>(lp.outputTexture)->d3d;
 
         libra_image_d3d12_handle_t input_handle = { d3d12Input };
         libra_image_d3d12_handle_t output_handle = { d3d12Output };
@@ -117,13 +117,13 @@ namespace RT64 {
             input, output, NULL, NULL, NULL);
 
         // D3D12 needs an extra reminder or imgui gets hidden by fx
-        lp.commandList->setFramebuffer(lp.swapchainFramebuffer);
+        //lp.commandList->setFramebuffer(lp.outputFramebuffer);
 #endif
 
 #if LIBRA_RUNTIME_VULKAN
         auto* vkCmdList = static_cast<plume::VulkanCommandList*>(lp.commandList)->vk;
-        auto* vkInput = static_cast<plume::VulkanTexture*>(lp.intermediateTexture);
-        auto* vkOutput = static_cast<plume::VulkanTexture*>(lp.swapchainTexture);
+        auto* vkInput = static_cast<plume::VulkanTexture*>(lp.inputTexture);
+        auto* vkOutput = static_cast<plume::VulkanTexture*>(lp.outputTexture);
 
         libra_image_vk_t input = {
             .handle = vkInput->vk,

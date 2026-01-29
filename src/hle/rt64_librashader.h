@@ -30,9 +30,9 @@ namespace RT64 {
     struct Librashader {
         struct LibraFrameParams {
             RenderCommandList *commandList = nullptr;
-            RenderFramebuffer* swapchainFramebuffer = nullptr;
-            RenderTexture *intermediateTexture = nullptr;
-            RenderTexture *swapchainTexture = nullptr;
+            RenderFramebuffer* outputFramebuffer = nullptr;
+            RenderTexture *inputTexture = nullptr;
+            RenderTexture *outputTexture = nullptr;
             RenderWorker *worker = nullptr;
             size_t frameCount;
         };

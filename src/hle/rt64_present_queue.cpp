@@ -267,14 +267,23 @@ namespace RT64 {
                 const RenderTexture *swapChainTexture = ext.swapChain->getTexture(i);
                 swapChainFramebuffers[i] = ext.device->createFramebuffer(RenderFramebufferDesc(&swapChainTexture, 1));
             }
+        }
+
+        // todo: Only update on change, for debugging let it rip every call
+        if (colorTarget != nullptr) {
+            RenderViewport viewport;
+            VIRenderer::getFXViewport(present.screenVI, resolutionScale, 1, removeBlackBorders, viewport);
 
             // setup intermediate buffers used when slang post-processing is enabled
             intermediateFramebuffer.reset();
+            intermediateTexture.reset();
+
             intermediateTexture = ext.device->createTexture(
                 plume::RenderTextureDesc::ColorTarget(
-                    ext.swapChain->getWidth(), ext.swapChain->getHeight(), RenderFormat::B8G8R8A8_UNORM
+                    viewport.width, viewport.height, RenderFormat::B8G8R8A8_UNORM
                 )
             );
+
             const RenderTexture* localIntermediateTexture = intermediateTexture.get();
             intermediateFramebuffer = ext.device->createFramebuffer(RenderFramebufferDesc(&localIntermediateTexture, 1));
         }
@@ -383,7 +392,7 @@ namespace RT64 {
 
                 if (renderParams.texture != nullptr) {
                     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(renderParams.texture, RenderTextureLayout::SHADER_READ));
-                    viRenderer->render(renderParams);
+                    viRenderer->render(renderParams, !libraReady);
 
                     if (libraReady) {
                         Librashader::LibraFrameParams frameparams;

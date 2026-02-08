@@ -9,7 +9,7 @@ TODO/ISSUES:
 - Metal support is missing
 - Need to support dx/vulkan in same build by checking current config instead of preproc only
 - Preprocessor cleanup for non-librashader builds
-- Basic scanlines don't work? Only res independent seems to kick in
+- 4:3 Scaling is stretched, needs appropriate viewport
 */
 
 #include "rt64_librashader.h"

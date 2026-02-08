@@ -269,12 +269,11 @@ namespace RT64 {
             }
         }
 
-        // todo: Only update on change, for debugging let it rip every call
-        if (colorTarget != nullptr) {
-            RenderViewport viewport;
-            VIRenderer::getFXViewport(present.screenVI, resolutionScale, 1, removeBlackBorders, viewport);
-
-            // setup intermediate buffers used when slang post-processing is enabled
+        // setup intermediate buffers used when slang post-processing is enabled
+        const uint32_t lastIntermediateWidth = intermediateFramebuffer ? intermediateFramebuffer.get()->getWidth() : 0;
+        RenderViewport viewport;
+        VIRenderer::getFXViewport(present.screenVI, resolutionScale, 1, removeBlackBorders, viewport);
+        if (colorTarget != nullptr && lastIntermediateWidth != viewport.width) {
             intermediateFramebuffer.reset();
             intermediateTexture.reset();
 

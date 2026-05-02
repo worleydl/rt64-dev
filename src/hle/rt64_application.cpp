@@ -375,6 +375,7 @@ namespace RT64 {
         rasterShaderCache->submit(desc_iris);
         rasterShaderCache->submit(desc_iris_contents);
         rasterShaderCache->submit(desc_dirtpath);
+        rasterShaderCache->submit(desc_fence);
 
 #   if RT_ENABLED
         if (device->getCapabilities().raytracing) {

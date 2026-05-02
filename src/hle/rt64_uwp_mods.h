@@ -52,6 +52,13 @@ namespace RT64 {
 		interop::RenderFlags{.value = 2559442958}
 	};
 
+	// Fence
+	ShaderDescription desc_fence = {
+		interop::ColorCombiner{4230387716U, 521469951U},
+		interop::OtherMode{202916432U, 10038335U},
+		interop::RenderFlags{.value = 2559442954}
+	};
+
 	/* Ice chandelier */
 	/*
 	RenderParams rp; rp.omL = 3356510680U;

@@ -372,6 +372,9 @@ namespace RT64 {
         rasterShaderCache->submit(desc_multitexture);
         rasterShaderCache->submit(desc_mountain);
         rasterShaderCache->submit(desc_ice);
+        rasterShaderCache->submit(desc_iris);
+        rasterShaderCache->submit(desc_iris_contents);
+        rasterShaderCache->submit(desc_dirtpath);
 
 #   if RT_ENABLED
         if (device->getCapabilities().raytracing) {
@@ -661,12 +664,15 @@ namespace RT64 {
                         presentQueue->inspector->setIniPath(userPaths.imguiPath);
                     }
 
+                    // Pause on show, useful for tracking down finnicky uber combos on shady gpu drivers
+                    //state->debuggerInspector.paused = true;
+
                     freeCamClearQueued = true;
-		    showing_inspector = true;
+                    showing_inspector = true;
                 }
                 else if (presentQueue->inspector != nullptr) {
                     presentQueue->inspector.reset(nullptr);
-		    showing_inspector = false;
+                    showing_inspector = false;
                 }
             }
             else {

@@ -32,6 +32,26 @@ namespace RT64 {
 		interop::RenderFlags{.value = 1217265674U }
 	};
 
+	// Iris (may need additional for iris contents, this keeps edge round)
+	ShaderDescription desc_iris = {
+		interop::ColorCombiner{4229076996U, 1058406399U},
+		interop::OtherMode{202916296U, 9972799U},
+		interop::RenderFlags{.value = 2290745358}
+	};
+
+	ShaderDescription desc_iris_contents = {
+		interop::ColorCombiner{4229076996U, 1058406399U},
+		interop::OtherMode{202916432U, 9972799U},
+		interop::RenderFlags{.value = 2290745358}
+	};
+
+	// Dirt path blend
+	ShaderDescription desc_dirtpath = {
+		interop::ColorCombiner{4230387716U, 521469951U},
+		interop::OtherMode{202916464U, 10038335U},
+		interop::RenderFlags{.value = 2559442958}
+	};
+
 	/* Ice chandelier */
 	/*
 	RenderParams rp; rp.omL = 3356510680U;
